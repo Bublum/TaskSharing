@@ -3,8 +3,8 @@ import subprocess
 import json
 
 TCP_IP = '192.168.0.109'
-TCP_PORT = 8800
-BUFFER_SIZE = 1024
+TCP_PORT = 8600
+BUFFER_SIZE = 10240
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((TCP_IP, TCP_PORT))
@@ -49,10 +49,11 @@ while True:
                 bytes_received += len(file_data)
 
             file.close()
+            print("received " + str(bytes_received) + " bytes as " + data["file_name"][i])
 
         response = "All received. Executing " + data["file_name"][data["file_type"].index("code")]
         s.send(response.encode('utf-8'))
-        execute_code(s, data['file_name'][data["file_type"].index("code")])
+        #execute_code(s, data['file_name'][data["file_type"].index("code")])
 
 
     elif data["type"] == "actual_code":
