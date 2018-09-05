@@ -13,8 +13,8 @@ DATA_THREAD_ID = -1
 DATA_PORT = 0
 
 HAS_SAMPLE = True
-SAMPLE_CODE = 'sample_code.py'
-SAMPLE_DATA = 'test.mkv'
+SAMPLE_FILE = ['sample_code.py','test.mkv','sample_code2.py']
+SAMPLE_TYPE = ['code','input','input']
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
@@ -63,19 +63,33 @@ def assess(connection, address):
 
     if HAS_SAMPLE:
 
+        sizes = []
+        #To get sizes of each file
+        for each in SAMPLE_FILE:
+            file_info = os.stat(ASSESS_DIR + '/' + each)
+            file_size = file_info.st_size
+            sizes.append(file_size)
+
+        msg = {
+            'type': 'assess',
+            'file_size': sizes,
+            'chunk_size': BUFFER_SIZE,
+            'file_name': SAMPLE_FILE,
+            'file_type': SAMPLE_TYPE
+        }
+
+        for each in range(len(SAMPLE_FILE)):
+            file_name = SAMPLE_FILE[each]
+            file_type =
+
         f = open(ASSESS_DIR + '/' + SAMPLE_CODE, 'rb')
         file_info = os.stat(ASSESS_DIR + '/' + SAMPLE_CODE)
         file_size = file_info.st_size
         data_info = os.stat(ASSESS_DIR + '/' + SAMPLE_DATA)
         data_size = data_info.st_size
+        file_name = [SAMPLE_CODE, SAMPLE_DATA]
+        file_arr = [file_size, data_size]
         chunk_size = BUFFER_SIZE
-        msg = {
-            'type': 'assess',
-            'file_size': [file_size, data_size],
-            'chunk_size': BUFFER_SIZE,
-            'file_name': [SAMPLE_CODE, SAMPLE_DATA],
-            'file_type': ['code']
-        }
 
         my_send(connection, msg)
 
@@ -93,7 +107,7 @@ def assess(connection, address):
 
         f = open(ASSESS_DIR + '/' + SAMPLE_DATA, 'rb')
         print(data_size)
-        print(data_size/BUFFER_SIZE)
+        print(data_size / BUFFER_SIZE)
         while data_size > 0:
 
             current = 0
