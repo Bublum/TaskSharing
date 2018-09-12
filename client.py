@@ -3,8 +3,8 @@ import subprocess
 import json
 
 TCP_IP = '192.168.0.109'
-TCP_PORT = 8600
-BUFFER_SIZE = 10240
+TCP_PORT = 6600
+BUFFER_SIZE = 102400
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((TCP_IP, TCP_PORT))
