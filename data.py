@@ -1,4 +1,5 @@
 import json
+import os
 import socket
 import netifaces as ni
 
@@ -17,7 +18,7 @@ class DataServer:
 
 def create_init_message(self_hostname, self_ip, self_port):
     return json.dumps({
-        'message_type': 'server_metadata',
+        'type': 'server_metadata',
         'data_server_host_name': self_hostname,
         'data_server_ip': self_ip,
         'data_server_port': self_port
@@ -34,6 +35,8 @@ def create_file_send_message(type, start_frame, end_frame, number_of_bytes, chun
     }).encode('UTF-8')
 
 
+def create_folder_send_message(type, )
+
 def init_self(port):
     print(ni.interfaces())
     self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
@@ -42,7 +45,7 @@ def init_self(port):
     return data_server
 
 
-def init(data_server):
+def send_coordinator_init_message(data_server):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((coordinator_ip, coordinator_port))
     init_message = create_init_message(data_server.hostname, data_server.ip, data_server.port)
@@ -71,9 +74,26 @@ def send_file(path, client_sock, type):
         client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
 
 
+def send_folder(path, client_sock, type):
+    print('Sending files in the folder')
+    try:
+        for filename in os.listdir(path+os.getcwd()):
+            file = open(filename, 'r')
+            data = file.read(BUFFER_SIZE)
+            client_sock.send(
+                create_file_send_message(type, '0', '100', number_of_bytes=len(data), chunk_size=BUFFER_SIZE))
+            while data:
+                client_sock.send(data)
+                data = file.read(BUFFER_SIZE)
+            file.close()
+        client_sock.close()
+    except IOError:
+        client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
+
+
 if __name__ == '__main__':
     data_server = init_self(5037)
-    init(data_server)
+    send_coordinator_init_message(data_server)
     socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket_obj.bind((data_server.ip, data_server.port))
     socket_obj.listen(1)
@@ -84,9 +104,14 @@ if __name__ == '__main__':
             data = client_sock.recv(BUFFER_SIZE)
             data_json = json.loads(data)
             print(data_json)
-            if data_json['message_type'] == 'sample_code':
+            if data_json['type'] == 'sample_code':
                 send_file('test_text_file.txt', client_sock, type='sample_code')
-            elif data_json['message_type'] == 'client_code':
+            elif data_json['type'] == 'client_code':
                 send_file('client_code.py', client_sock, type='client_code')
-            elif data_json['message_type'] == 'server_code':
+            elif data_json['type'] == 'server_code':
                 send_file('server_code.py', client_sock, type='server_code')
+            elif data_json['type'] == 'acknowledge':
+                send_folder('sample', client_sock, type='acknowledge')
+
+
+            print('Closed connection with coordinator')
