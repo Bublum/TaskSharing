@@ -15,6 +15,10 @@ class DataServer:
         self.type = 'DataServer'
         self.port = port
 
+def my_send(connection, data):
+    data = json.dumps(data)
+    print(data)
+    connection.send(bytes(data, 'UTF-8'))
 
 def create_init_message(self_hostname, self_ip, self_port):
     return json.dumps({
@@ -35,7 +39,22 @@ def create_file_send_message(type, start_frame, end_frame, number_of_bytes, chun
     }).encode('UTF-8')
 
 
-def create_folder_send_message(type, )
+def send_folder_metadata(path, client_sock):
+    file_names = []
+    file_sizes = []
+    for filename in os.listdir(os.getcwd() + '/' + path):
+        file_names.append(filename)
+        file = open(filename, 'r')
+        data = file.read(BUFFER_SIZE)
+        file_sizes.append(len(data))
+    msg = {
+        'type': 'assess',
+        'file_size': file_sizes,
+        'chunk_size': BUFFER_SIZE,
+        'file_name': file_names,
+    }
+    my_send(client_sock, msg)
+
 
 def init_self(port):
     print(ni.interfaces())
@@ -77,7 +96,7 @@ def send_file(path, client_sock, type):
 def send_folder(path, client_sock, type):
     print('Sending files in the folder')
     try:
-        for filename in os.listdir(path+os.getcwd()):
+        for filename in os.listdir(os.getcwd() + '/' + path):
             file = open(filename, 'r')
             data = file.read(BUFFER_SIZE)
             client_sock.send(
@@ -105,11 +124,11 @@ if __name__ == '__main__':
             data_json = json.loads(data)
             print(data_json)
             if data_json['type'] == 'sample_code':
-                send_file('test_text_file.txt', client_sock, type='sample_code')
+                send_folder_metadata('sample', client_sock)
+                # send_file('test_text_file.txt', client_sock, type='sample_code')
             elif data_json['type'] == 'client_code':
                 send_file('client_code.py', client_sock, type='client_code')
             elif data_json['type'] == 'server_code':
                 send_file('server_code.py', client_sock, type='server_code')
             elif data_json['type'] == 'acknowledge':
                 send_folder('sample', client_sock, type='acknowledge')
-

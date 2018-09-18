@@ -80,7 +80,7 @@ def assess(connection, address):
 
         for each in range(len(SAMPLE_FILE)):
             file_name = SAMPLE_FILE[each]
-            file_type =
+            # file_type =
 
         f = open(ASSESS_DIR + '/' + SAMPLE_CODE, 'rb')
         file_info = os.stat(ASSESS_DIR + '/' + SAMPLE_CODE)
