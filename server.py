@@ -6,15 +6,15 @@ import math
 
 COUNTER = 0
 
-ASSESS_DIR = os.getcwd() + '/assess'
+ASSESS_DIR = os.getcwd() + '/assess/'
 
 DATA_IP = ''
 DATA_THREAD_ID = -1
 DATA_PORT = 0
 
 HAS_SAMPLE = True
-SAMPLE_FILE = ['sample_code.py','test.mkv','sample_code2.py']
-SAMPLE_TYPE = ['code','input','input']
+SAMPLE_FILE = ['sample_code.py', 'sample.mkv', 'sample_code2.py']
+SAMPLE_TYPE = ['code', 'input', 'input']
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
@@ -25,31 +25,64 @@ def my_send(connection, data):
     connection.send(bytes(data, 'UTF-8'))
 
 
+def my_recv(connection):
+    data = connection.recv(BUFFER_SIZE)
+    print(data)
+    data = json.loads(data.decode('UTF-8'))
+    return data
+
+
 def get_sample_data():
     global HAS_SAMPLE
     global DATA_IP
     global DATA_PORT
+    global HAS_SAMPLE
+    HAS_SAMPLE = True
     if DATA_IP == '':
         print('Data node not found')
     else:
         if DATA_PORT != 0:
             msg = {
                 'type': 'sample_code',
-
             }
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((TCP_IP, TCP_PORT))
-            json.dump(msg, s)
-            response = s.recv(BUFFER_SIZE)
-            response = json.load(response)
+            s.connect((DATA_IP, DATA_PORT))
+            my_send(s,msg)
+            response = my_recv(s)
+
             if response['type'] == 'sample_code':
-                chunk_size = int(response['chunk_size'])
-                num_of_bytes = int(response['num_of_bytes'])
-                number = math.ceil(num_of_bytes / chunk_size)
-                f = open("sample_code.py", "w")
-                for i in range(number):
-                    response = s.recv(BUFFER_SIZE)
-                    f.write(response)
+                msg['type'] = "acknowledge_" + response["type"]
+
+                s.send(json.dumps(response).encode('utf-8'))
+
+                chunk_size = response["chunk_size"]
+
+                for i in range(len(response["file_name"])):
+                    current = response["file_size"][i]
+                    file = open(response["file_name"][i], "wb")
+
+                    while current > 0:
+
+                        current = chunk_size
+                        if current < chunk_size:
+                            current = current
+                        print(current)
+                        # s.settimeout(TIMEOUT)
+                        file_data = s.recv(current)
+                        # print('--------' + str(len(file_data)))
+                        current -= len(file_data)
+                        while not file_data:
+                            file_data = s.recv(current)
+                        file.write(file_data)
+
+                    file.close()
+
+                    file_response = {}
+                    file_response["type"] = "file_received"
+                    file_response["file_name"] = response["file_name"][i]
+
+                    s.send(json.dumps(file_response).encode('utf-8'))
+                    print("received " + response["file_name"][i])
                 HAS_SAMPLE = True
             else:
                 print('Error Occurred')
@@ -64,7 +97,7 @@ def assess(connection, address):
     if HAS_SAMPLE:
 
         sizes = []
-        #To get sizes of each file
+        # To get sizes of each file
         for each in SAMPLE_FILE:
             file_info = os.stat(ASSESS_DIR + '/' + each)
             file_size = file_info.st_size
@@ -77,52 +110,44 @@ def assess(connection, address):
             'file_name': SAMPLE_FILE,
             'file_type': SAMPLE_TYPE
         }
-
-        for each in range(len(SAMPLE_FILE)):
-            file_name = SAMPLE_FILE[each]
-            # file_type =
-
-        f = open(ASSESS_DIR + '/' + SAMPLE_CODE, 'rb')
-        file_info = os.stat(ASSESS_DIR + '/' + SAMPLE_CODE)
-        file_size = file_info.st_size
-        data_info = os.stat(ASSESS_DIR + '/' + SAMPLE_DATA)
-        data_size = data_info.st_size
-        file_name = [SAMPLE_CODE, SAMPLE_DATA]
-        file_arr = [file_size, data_size]
-        chunk_size = BUFFER_SIZE
-
         my_send(connection, msg)
+        print('waiting for acknowledge')
+        response = my_recv(connection)
 
-        while file_size > 0:
+        if response['type'] == 'acknowledge_assess':
 
-            current = 0
-            if file_size < chunk_size:
-                current = file_size
-            else:
-                current = chunk_size
-            print(current)
-            msg = f.read(current)
-            file_size -= current
-            connection.send(msg)
+            for each in range(len(SAMPLE_FILE)):
+                file_name = SAMPLE_FILE[each]
+                file_type = SAMPLE_TYPE[each]
+                f = open(ASSESS_DIR + file_name, 'rb')
+                file_size = sizes[each]
+                chunk_size = BUFFER_SIZE
 
-        f = open(ASSESS_DIR + '/' + SAMPLE_DATA, 'rb')
-        print(data_size)
-        print(data_size / BUFFER_SIZE)
-        while data_size > 0:
+                while file_size > 0:
+                    print(file_size)
+                    current = chunk_size
+                    if file_size < chunk_size:
+                        current = file_size
+                    # print(current)
+                    msg = f.read(current)
+                    file_size -= current
+                    connection.send(msg)
+                    # temp = connection.recv(2).decode('UTF-8')
+                    # print(temp)
+                    # if temp != 'ok':
+                    #     print('FAIL')
+                print('Done:' + file_name)
 
-            current = 0
-            if data_size < chunk_size:
-                current = data_size
-            else:
-                current = chunk_size
-            print(current)
-            msg = f.read(current)
-            data_size -= current
-            connection.send(msg)
-
-        print('Done')
+                response = my_recv(connection)
+                if not (response['type'] == 'file_received' and response['file_name'] == file_name):
+                    print('Failure')
+                else:
+                    print('Success')
 
 
+
+        else:
+            print('Didnt got response')
     else:
         msg = {
             'type': 'error',

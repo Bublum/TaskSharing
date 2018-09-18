@@ -108,6 +108,7 @@ def send_folder(path, client_sock, type):
         client_sock.close()
     except IOError:
         client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
+        client_sock.close()
 
 
 if __name__ == '__main__':
@@ -132,3 +133,5 @@ if __name__ == '__main__':
                 send_file('server_code.py', client_sock, type='server_code')
             elif data_json['type'] == 'acknowledge':
                 send_folder('sample', client_sock, type='acknowledge')
+
+            print('Closed connection with coordinator')
