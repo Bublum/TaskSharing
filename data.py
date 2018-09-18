@@ -42,7 +42,7 @@ def init_self(port):
     return data_server
 
 
-def init(data_server):
+def send_coordinator_init_message(data_server):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((coordinator_ip, coordinator_port))
     init_message = create_init_message(data_server.hostname, data_server.ip, data_server.port)
@@ -73,7 +73,7 @@ def send_file(path, client_sock, type):
 
 if __name__ == '__main__':
     data_server = init_self(5037)
-    init(data_server)
+    send_coordinator_init_message(data_server)
     socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket_obj.bind((data_server.ip, data_server.port))
     socket_obj.listen(1)
@@ -90,3 +90,5 @@ if __name__ == '__main__':
                 send_file('client_code.py', client_sock, type='client_code')
             elif data_json['message_type'] == 'server_code':
                 send_file('server_code.py', client_sock, type='server_code')
+
+            print('Closed connection with coordinator')
