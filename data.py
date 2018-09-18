@@ -35,7 +35,9 @@ def create_file_send_message(type, start_frame, end_frame, number_of_bytes, chun
     }).encode('UTF-8')
 
 
-def create_folder_send_message(type, )
+def create_folder_send_message(type, ):
+    pass
+
 
 def init_self(port):
     print(ni.interfaces())
@@ -77,7 +79,7 @@ def send_file(path, client_sock, type):
 def send_folder(path, client_sock, type):
     print('Sending files in the folder')
     try:
-        for filename in os.listdir(path+os.getcwd()):
+        for filename in os.listdir(path + os.getcwd()):
             file = open(filename, 'r')
             data = file.read(BUFFER_SIZE)
             client_sock.send(
@@ -89,6 +91,7 @@ def send_folder(path, client_sock, type):
         client_sock.close()
     except IOError:
         client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
+        client_sock.close()
 
 
 if __name__ == '__main__':
@@ -112,6 +115,5 @@ if __name__ == '__main__':
                 send_file('server_code.py', client_sock, type='server_code')
             elif data_json['type'] == 'acknowledge':
                 send_folder('sample', client_sock, type='acknowledge')
-
 
             print('Closed connection with coordinator')
