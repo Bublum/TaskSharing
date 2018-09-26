@@ -21,13 +21,13 @@ BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
 def my_send(connection, data):
     data = json.dumps(data)
-    print(data)
+    print('send',data)
     connection.send(bytes(data, 'UTF-8'))
 
 
 def my_recv(connection):
     data = connection.recv(BUFFER_SIZE)
-    print(data)
+    print('recv',data)
     data = json.loads(data.decode('UTF-8'))
     return data
 
@@ -47,7 +47,7 @@ def get_sample_data():
             }
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((DATA_IP, DATA_PORT))
-            my_send(s,msg)
+            my_send(s, msg)
             response = my_recv(s)
 
             if response['type'] == 'sample_code':
@@ -167,6 +167,7 @@ class MyThread(threading.Thread):
         self.node = node
         self.connection = node[0]
         self.address = node[1]
+        # self.work = work
         COUNTER += 1
 
     def run(self):
@@ -176,31 +177,72 @@ class MyThread(threading.Thread):
         global DATA_PORT
         msg = {
             'type': 'question',
-            'question': 'Role'
+            'question': 'role'
         }
         my_send(self.connection, data=msg)
 
-        response = self.connection.recv(BUFFER_SIZE)
-        response = json.loads(response.decode('UTF-8'))
+        response = my_recv(self.connection)
         role = response['role']
         self.role = role
         print(response)
         print(role)
-        if role == 'data':
+        if role == 'data_server':
+
             DATA_IP = self.address
             DATA_THREAD_ID = self.threadID
+            msg = {
+                'type': 'request',
+                'file_type': 'code'
+            }
+            my_send(self.connection, data=msg)
+            response = my_recv(self.connection)
+
+            type = response['type']
+            file_name = response['file_name']
+            file_size = response['file_size']
+            chunk_size = response['chunk_size']
+
+            msg = {
+                'type': 'acknowledge_' + type
+            }
+            my_send(self.connection, data=msg)
+
+            for i in range(len(file_name)):
+                file = open('code/' + file_name[i], "wb")
+                bytes_received = file_size[i]
+                while bytes_received > 0:
+
+                    current = chunk_size
+                    if bytes_received < chunk_size:
+                        current = bytes_received
+                    print(bytes_received)
+                    # s.settimeout(TIMEOUT)
+                    file_data = self.connection.recv(current)
+                    # print('--------' + str(len(file_data)))
+                    bytes_received -= len(file_data)
+                    file.write(file_data)
+
+                file.close()
+
+                file_response = {
+                    "type": "file_received",
+                    "file_name": file_name[i]
+                }
+                my_send(self.connection, data=file_response)
+                print("received " + file_name[i])
+
             self.connection.close()
         else:
             assess(self.connection, self.address)
-            # self.connection.close()
+            self.connection.close()
 
 
 hostname = socket.gethostname()
 import netifaces as ni
 
-ni.ifaddresses('wlp3s0')
-ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
-print(ip)
+# ni.ifaddresses('wlp3s0')
+# ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+# print(ip)
 print("Your Computer Name is:" + hostname)
 TCP_IP = input("Enter IP: ")
 
