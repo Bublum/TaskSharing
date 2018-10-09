@@ -95,7 +95,7 @@ def get_sample_data():
             print('Data port not found')
 
 
-def send_folder(connection, path)
+def send_folder(connection, path):
     # cwd = os.getcwd()
 
     # code_path = '/code'
@@ -355,6 +355,7 @@ class MyThread(threading.Thread):
                     my_send(self.connection, data=file_response)
                     print("received " + file_name[i] +' for client/number '+each_task['client_id']+
                           '/'+each_task['number'])
+
                 each_task['status'] = 'done'
                 done_tasks_queue.put(each_task)
 
