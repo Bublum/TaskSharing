@@ -9,8 +9,6 @@ server_ip = '192.168.0.106'
 server_port = 9000
 
 
-
-
 class DataServer:
     def __init__(self, ip, hostname, port):
         self.ip = ip
@@ -27,14 +25,7 @@ def create_init_message(self_hostname, self_ip, self_port):
         'data_server_port': self_port
     }).encode('UTF-8')
 
-def create_folder_send_message(type, file_names, file_sizes, file_types):
-    return json.dumps({
-        'type': type,
-        'file_name': file_names,
-        'file_size': file_sizes,
-        'chunk_size': BUFFER_SIZE,
-        'file_type': file_types
-    }).encode('UTF-8')
+
 
 
 def init_self(port):
@@ -121,7 +112,13 @@ def send_folder(path, client_sock, type):
         file_names = os.listdir(os.getcwd() + path)
         file_sizes = get_file_sizes(file_names, path)
         file_types = get_file_types(file_names)
-        client_sock.send(create_folder_send_message(type, file_names, file_sizes, file_types))
+        my_send(client_sock,{
+            'type': type,
+            'file_name': file_names,
+            'file_size': file_sizes,
+            'chunk_size': BUFFER_SIZE,
+            'file_type': file_types
+        })
         ack_json = json.loads(client_sock.recv(BUFFER_SIZE))
         if ack_json['type'] == 'acknowledge_actual_codes':
             total_files = len(os.listdir(os.getcwd() + path))
