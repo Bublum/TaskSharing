@@ -21,8 +21,8 @@ HAS_CODE = False
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
-task_queue = queue.Queue() # stores list of tasks
-done_task_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
+task_queue = queue.Queue()  # stores list of tasks
+done_task_list = []  # takes data from data_server and appends its metadata it into this list.
 
 
 def my_send(connection, data):
@@ -331,7 +331,7 @@ class MyThread(threading.Thread):
                 my_send(self.connection, data=msg)
 
                 for i in range(len(file_name)):
-                    file = open('input/' + each_task['client_id']+ '/' +
+                    file = open('input/' + each_task['client_id'] + '/' +
                                 each_task['number'] + '/' +
                                 file_name[i], "wb")
                     bytes_received = file_size[i]
@@ -354,10 +354,10 @@ class MyThread(threading.Thread):
                         "file_name": file_name[i]
                     }
                     my_send(self.connection, data=file_response)
-                    print("received " + file_name[i] +' for client/number '+each_task['client_id']+
-                          '/'+each_task['number'])
+                    print("received " + file_name[i] + ' for client/number ' + each_task['client_id'] +
+                          '/' + each_task['number'])
                 each_task['status'] = 'done'
-                done_task_queue.put(each_task)
+                done_task_list.append(each_task)
 
             self.connection.close()
         else:
@@ -366,12 +366,36 @@ class MyThread(threading.Thread):
             send_code_files(connection=self.connection)
             while final_answer == 'yes':
                 my_dict = {
-                    'client_id':self.threadID,
-                    'number':self.number,
-                    'type':'input'
+                    'client_id': self.threadID,
+                    'number': self.number,
+                    'type': 'input'
                 }
                 task_queue.put(my_dict)
-                while done_task_queue
+                exists = False
+                msg = str(self.threadID) + '_' + str(self.number)
+                index = -1
+                while not exists:
+                    length = done_task_list.__len__()
+                    for i in range(length):
+                        if msg in done_task_list[i]:
+                            exists = True
+                            index = i
+                            break
+                current_task = done_task_list[index][msg]
+                self.number += 1
+
+                request = {
+                    'type': 'actual_input'
+                }
+                my_send(self.connection, request)
+
+                response = my_recv(self.connection)
+
+                if request['type'] == 'response_input':
+                    final_answer = request['response']
+                    if request['response'] == 'yes':
+                        send_folder(self.connection, current_task['folder_path'])
+
             self.connection.close()
 
 
