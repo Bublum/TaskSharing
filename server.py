@@ -95,7 +95,7 @@ def get_sample_data():
             print('Data port not found')
 
 
-def send_folder(connection, path)
+def send_folder(connection, path):
     # cwd = os.getcwd()
 
     # code_path = '/code'
@@ -251,6 +251,7 @@ class MyThread(threading.Thread):
         self.address = node[1]
         # self.work = work
         COUNTER += 1
+        self.number = 0
 
     def run(self):
         global HAS_SAMPLE
@@ -364,7 +365,11 @@ class MyThread(threading.Thread):
             final_answer = 'yes'
             send_code_files(connection=self.connection)
             while final_answer == 'yes':
-
+                my_dict = {
+                    'client_id':self.threadID,
+                    'number':self.number,
+                    'type':'input'
+                }
 
             self.connection.close()
 
