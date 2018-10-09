@@ -6,6 +6,7 @@ import subprocess
 
 BUFFER_SIZE = 1024
 server_ip = '192.168.0.106'
+
 server_port = 9000
 
 
