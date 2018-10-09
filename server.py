@@ -19,6 +19,8 @@ SAMPLE_TYPE = ['code', 'input', 'input']
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
 
+
+
 def my_send(connection, data):
     data = json.dumps(data)
     print('send',data)
