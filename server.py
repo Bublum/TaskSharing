@@ -194,6 +194,7 @@ class MyThread(threading.Thread):
                 'type': 'request',
                 'file_type': 'code'
             }
+
             my_send(self.connection, data=msg)
             response = my_recv(self.connection)
 
