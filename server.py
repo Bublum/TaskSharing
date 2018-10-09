@@ -16,20 +16,21 @@ HAS_SAMPLE = True
 SAMPLE_FILE = ['sample_code.py', 'sample.mkv', 'sample_code2.py']
 SAMPLE_TYPE = ['code', 'input', 'input']
 
+
+HAS_CODE = False
+
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
-
-
 
 
 def my_send(connection, data):
     data = json.dumps(data)
-    print('send',data)
+    print('send', data)
     connection.send(bytes(data, 'UTF-8'))
 
 
 def my_recv(connection):
     data = connection.recv(BUFFER_SIZE)
-    print('recv',data)
+    print('recv', data)
     data = json.loads(data.decode('UTF-8'))
     return data
 
@@ -92,6 +93,76 @@ def get_sample_data():
         else:
             print('Data port not found')
 
+
+def send_code_files(connection):
+    if HAS_CODE:
+
+        cwd = os.getcwd()
+
+        code_path = '/code'
+
+        full_path = cwd + code_path
+
+        sizes = []
+        # To get sizes of each file
+        file_names = os.listdir(full_path)
+
+        for each in SAMPLE_FILE:
+            file_info = os.stat(ASSESS_DIR + '/' + each)
+            file_size = file_info.st_size
+            sizes.append(file_size)
+
+        msg = {
+            'type': 'assess',
+            'file_size': sizes,
+            'chunk_size': BUFFER_SIZE,
+            'file_name': SAMPLE_FILE,
+            'file_type': SAMPLE_TYPE
+        }
+        my_send(connection, msg)
+        print('waiting for acknowledge')
+        response = my_recv(connection)
+
+        if response['type'] == 'acknowledge_assess':
+
+            for each in range(len(SAMPLE_FILE)):
+                file_name = SAMPLE_FILE[each]
+                file_type = SAMPLE_TYPE[each]
+                f = open(ASSESS_DIR + file_name, 'rb')
+                file_size = sizes[each]
+                chunk_size = BUFFER_SIZE
+
+                while file_size > 0:
+                    print(file_size)
+                    current = chunk_size
+                    if file_size < chunk_size:
+                        current = file_size
+                    # print(current)
+                    msg = f.read(current)
+                    file_size -= current
+                    connection.send(msg)
+                    # temp = connection.recv(2).decode('UTF-8')
+                    # print(temp)
+                    # if temp != 'ok':
+                    #     print('FAIL')
+                print('Done:' + file_name)
+
+                response = my_recv(connection)
+                if not (response['type'] == 'file_received' and response['file_name'] == file_name):
+                    print('Failure')
+                else:
+                    print('Success')
+
+
+
+        else:
+            print('Didnt got response')
+    else:
+        msg = {
+            'type': 'error',
+            'error': 'Data node not connected'
+        }
+        my_send(connection, msg)
 
 def assess(connection, address):
     current_dir = os.getcwd()
@@ -236,7 +307,10 @@ class MyThread(threading.Thread):
 
             self.connection.close()
         else:
-            assess(self.connection, self.address)
+            # assess(self.connection, self.address)
+            final_answer = 'yes'
+            while final_answer == 'yes':
+                send_code_files()
             self.connection.close()
 
 

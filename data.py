@@ -25,6 +25,7 @@ def create_init_message(self_hostname, self_ip, self_port):
         'data_server_port': self_port
     }).encode('UTF-8')
 
+
 def create_folder_send_message(type, file_names, file_sizes, file_types):
     return json.dumps({
         'type': type,
