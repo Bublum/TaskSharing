@@ -9,6 +9,8 @@ server_ip = '192.168.0.106'
 server_port = 9000
 
 
+
+
 class DataServer:
     def __init__(self, ip, hostname, port):
         self.ip = ip
