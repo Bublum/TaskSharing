@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import json
+import queue
 import math
 
 COUNTER = 0
@@ -18,8 +19,8 @@ SAMPLE_TYPE = ['code', 'input', 'input']
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
-task_queue = [] # stores list of tasks
-done_tasks_queue = [] # takes data from data_server and appends its metadata it into this list.
+task_queue = queue.Queue() # stores list of tasks
+done_tasks_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
 
 
 def my_send(connection, data):
@@ -233,6 +234,49 @@ class MyThread(threading.Thread):
                 my_send(self.connection, data=file_response)
                 print("received " + file_name[i])
 
+            while True:
+                each_task = task_queue.get()
+                my_send(self.connection, data=json.dumps(each_task))
+                response = my_recv(self.connection)
+
+                type = response['type']
+                file_name = response['file_name']
+                file_size = response['file_size']
+                chunk_size = response['chunk_size']
+
+                msg = {
+                    'type': 'acknowledge_' + type
+                }
+                my_send(self.connection, data=msg)
+
+                for i in range(len(file_name)):
+                    file = open('input/' + each_task['client_id']+ '/' +
+                                each_task['number'] + '/' +
+                                file_name[i], "wb")
+                    bytes_received = file_size[i]
+                    while bytes_received > 0:
+
+                        current = chunk_size
+                        if bytes_received < chunk_size:
+                            current = bytes_received
+                        print(bytes_received)
+                        # s.settimeout(TIMEOUT)
+                        file_data = self.connection.recv(current)
+                        # print('--------' + str(len(file_data)))
+                        bytes_received -= len(file_data)
+                        file.write(file_data)
+
+                    file.close()
+
+                    file_response = {
+                        "type": "file_received",
+                        "file_name": file_name[i]
+                    }
+                    my_send(self.connection, data=file_response)
+                    print("received " + file_name[i] +' for client/number '+each_task['client_id']+
+                          '/'+each_task['number'])
+                each_task['status'] = 'done'
+                done_tasks_queue.put(each_task)
 
             self.connection.close()
         else:
