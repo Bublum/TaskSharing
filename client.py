@@ -2,6 +2,7 @@ import socket
 import os
 import subprocess
 import json
+import time
 
 TCP_IP = '192.168.0.113'
 TCP_PORT = 7800
@@ -14,6 +15,7 @@ print("Connected..")
 
 
 def execute_code(s, filename):
+    start = time.time()
     code = subprocess.Popen(["python", filename], stdout=subprocess.PIPE)
 
     while code.returncode is None:
@@ -21,7 +23,13 @@ def execute_code(s, filename):
         # s.send(output)
         code.poll()
 
-    s.send("Done".encode('utf-8'))
+    end = time.time()
+
+    response = {}
+    response['type'] = "assess_result"
+    response["time_taken"] = "{:.3f}".format(end - start)
+
+    s.send(json.dumps(response).encode('utf-8'))
 
 
 while True:
@@ -82,7 +90,7 @@ while True:
 
         # response = "All received. Executing " + data["file_name"][data["file_type"].index("code")]
         # s.send(response.encode('utf-8'))
-        # execute_code(s, data['file_name'][data["file_type"].index("code")])
+        execute_code(s, data['file_name'][data["file_type"].index("code")])
         os.chdir(cwd)
 
 
