@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import json
+import queue
 import math
 
 COUNTER = 0
@@ -16,20 +17,23 @@ HAS_SAMPLE = True
 SAMPLE_FILE = ['sample_code.py', 'sample.mkv', 'sample_code2.py']
 SAMPLE_TYPE = ['code', 'input', 'input']
 
+HAS_CODE = False
+
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
-
+task_queue = queue.Queue() # stores list of tasks
+done_tasks_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
 
 
 def my_send(connection, data):
     data = json.dumps(data)
-    print('send',data)
+    print('send', data)
     connection.send(bytes(data, 'UTF-8'))
 
 
 def my_recv(connection):
     data = connection.recv(BUFFER_SIZE)
-    print('recv',data)
+    print('recv', data)
     data = json.loads(data.decode('UTF-8'))
     return data
 
@@ -79,9 +83,7 @@ def get_sample_data():
 
                     file.close()
 
-                    file_response = {}
-                    file_response["type"] = "file_received"
-                    file_response["file_name"] = response["file_name"][i]
+                    file_response = {"type": "file_received", "file_name": response["file_name"][i]}
 
                     s.send(json.dumps(file_response).encode('utf-8'))
                     print("received " + response["file_name"][i])
@@ -91,6 +93,84 @@ def get_sample_data():
 
         else:
             print('Data port not found')
+
+
+def send_folder(connection, path)
+    # cwd = os.getcwd()
+
+    # code_path = '/code'
+
+    # full_path = cwd + code_path + '/'
+
+    sizes = []
+    # To get sizes of each file
+    all_files = os.listdir(path)
+
+    for each in all_files:
+        file_info = os.stat(path + each)
+        file_size = file_info.st_size
+        sizes.append(file_size)
+
+    msg = {
+        'type': 'actual',
+        'file_size': sizes,
+        'chunk_size': BUFFER_SIZE,
+        'file_name': all_files,
+    }
+    my_send(connection, msg)
+    print('waiting for acknowledge')
+    response = my_recv(connection)
+
+    if response['type'] == 'acknowledge_actual':
+
+        for each in range(len(all_files)):
+            file_name = all_files[each]
+            # file_type = SAMPLE_TYPE[each]
+            f = open(path + file_name, 'rb')
+            file_size = sizes[each]
+            chunk_size = BUFFER_SIZE
+
+            while file_size > 0:
+                print(file_size)
+                current = chunk_size
+                if file_size < chunk_size:
+                    current = file_size
+                # print(current)
+                msg = f.read(current)
+                file_size -= current
+                connection.send(msg)
+                # temp = connection.recv(2).decode('UTF-8')
+                # print(temp)
+                # if temp != 'ok':
+                #     print('FAIL')
+            print('Done:' + file_name)
+
+            response = my_recv(connection)
+            if not (response['type'] == 'file_received' and response['file_name'] == file_name):
+                print('Failure')
+                return -1
+            else:
+                print('Success')
+                return 1
+    else:
+        print('Didnt got response')
+
+
+def send_code_files(connection):
+    if HAS_CODE:
+        cwd = os.getcwd()
+
+        code_path = '/code'
+
+        full_path = cwd + code_path + '/'
+        send_folder(connection, full_path)
+
+    else:
+        msg = {
+            'type': 'error',
+            'error': 'Data node not connected'
+        }
+        my_send(connection, msg)
 
 
 def assess(connection, address):
@@ -234,9 +314,58 @@ class MyThread(threading.Thread):
                 my_send(self.connection, data=file_response)
                 print("received " + file_name[i])
 
+            while True:
+                each_task = task_queue.get()
+                my_send(self.connection, data=json.dumps(each_task))
+                response = my_recv(self.connection)
+
+                type = response['type']
+                file_name = response['file_name']
+                file_size = response['file_size']
+                chunk_size = response['chunk_size']
+
+                msg = {
+                    'type': 'acknowledge_' + type
+                }
+                my_send(self.connection, data=msg)
+
+                for i in range(len(file_name)):
+                    file = open('input/' + each_task['client_id']+ '/' +
+                                each_task['number'] + '/' +
+                                file_name[i], "wb")
+                    bytes_received = file_size[i]
+                    while bytes_received > 0:
+
+                        current = chunk_size
+                        if bytes_received < chunk_size:
+                            current = bytes_received
+                        print(bytes_received)
+                        # s.settimeout(TIMEOUT)
+                        file_data = self.connection.recv(current)
+                        # print('--------' + str(len(file_data)))
+                        bytes_received -= len(file_data)
+                        file.write(file_data)
+
+                    file.close()
+
+                    file_response = {
+                        "type": "file_received",
+                        "file_name": file_name[i]
+                    }
+                    my_send(self.connection, data=file_response)
+                    print("received " + file_name[i] +' for client/number '+each_task['client_id']+
+                          '/'+each_task['number'])
+                each_task['status'] = 'done'
+                done_tasks_queue.put(each_task)
+
             self.connection.close()
         else:
-            assess(self.connection, self.address)
+            # assess(self.connection, self.address)
+            final_answer = 'yes'
+            send_code_files(connection=self.connection)
+            while final_answer == 'yes':
+
+
             self.connection.close()
 
 
