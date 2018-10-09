@@ -22,6 +22,10 @@ HAS_CODE = False
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
 
+task_queue = [] # stores list of tasks
+done_tasks_queue = [] # takes data from data_server and appends its metadata it into this list.
+
+
 def my_send(connection, data):
     data = json.dumps(data)
     print('send', data)
@@ -80,9 +84,7 @@ def get_sample_data():
 
                     file.close()
 
-                    file_response = {}
-                    file_response["type"] = "file_received"
-                    file_response["file_name"] = response["file_name"][i]
+                    file_response = {"type": "file_received", "file_name": response["file_name"][i]}
 
                     s.send(json.dumps(file_response).encode('utf-8'))
                     print("received " + response["file_name"][i])
