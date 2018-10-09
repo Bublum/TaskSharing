@@ -47,8 +47,7 @@ while True:
             os.makedirs(cwd + '/assess')
         os.chdir(cwd + '/assess')
 
-        response = {}
-        response['type'] = "acknowledge_" + data["type"]
+        response = {'type': "acknowledge_" + data["type"]}
 
         s.send(json.dumps(response).encode('utf-8'))
 
