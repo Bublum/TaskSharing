@@ -95,7 +95,7 @@ def get_sample_data():
             print('Data port not found')
 
 
-def send_folder(connection, path):
+def send_folder(connection, path,type):
     # cwd = os.getcwd()
 
     # code_path = '/code'
@@ -112,7 +112,7 @@ def send_folder(connection, path):
         sizes.append(file_size)
 
     msg = {
-        'type': 'actual',
+        'type': type,
         'file_size': sizes,
         'chunk_size': BUFFER_SIZE,
         'file_name': all_files,
@@ -163,7 +163,7 @@ def send_code_files(connection):
         code_path = '/code'
 
         full_path = cwd + code_path + '/'
-        send_folder(connection, full_path)
+        send_folder(connection, full_path,'actual')
 
     else:
         msg = {
@@ -403,7 +403,7 @@ class MyThread(threading.Thread):
                 if request['type'] == 'response_input':
                     final_answer = request['response']
                     if request['response'] == 'yes':
-                        send_folder(self.connection, current_task['folder_path'])
+                        send_folder(self.connection, current_task['folder_path'],'input')
 
             self.connection.close()
 
