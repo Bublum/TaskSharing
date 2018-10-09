@@ -354,10 +354,19 @@ class MyThread(threading.Thread):
                         "file_name": file_name[i]
                     }
                     my_send(self.connection, data=file_response)
-                    print("received " + file_name[i] + ' for client/number ' + each_task['client_id'] +
+                    print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
                           '/' + each_task['number'])
-                each_task['status'] = 'done'
-                done_task_list.append(each_task)
+                folder_path = os.getcwd() + '/input/' + each_task['client_id'] + '/' + \
+                              each_task['number'] + '/'
+
+                done_task = {each_task['client_id'] + '_' + each_task['number']: {
+                    'file_names': file_names,
+                    'folder_path': folder_path,
+                    'status': 'done'
+                }
+                }
+
+                done_task_list.append(done_task)
 
             self.connection.close()
         else:
