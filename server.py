@@ -321,7 +321,7 @@ class MyThread(threading.Thread):
                 response = my_recv(self.connection)
 
                 type = response['type']
-                file_name = response['file_name']
+                file_names = response['file_name']
                 file_size = response['file_size']
                 chunk_size = response['chunk_size']
 
@@ -351,7 +351,7 @@ class MyThread(threading.Thread):
 
                     file_response = {
                         "type": "file_received",
-                        "file_name": file_name[i]
+                        "file_name": file_names[i]
                     }
                     my_send(self.connection, data=file_response)
                     print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
