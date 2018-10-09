@@ -22,7 +22,7 @@ HAS_CODE = False
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
 task_queue = queue.Queue() # stores list of tasks
-done_tasks_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
+done_task_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
 
 
 def my_send(connection, data):
@@ -357,7 +357,7 @@ class MyThread(threading.Thread):
                     print("received " + file_name[i] +' for client/number '+each_task['client_id']+
                           '/'+each_task['number'])
                 each_task['status'] = 'done'
-                done_tasks_queue.put(each_task)
+                done_task_queue.put(each_task)
 
             self.connection.close()
         else:
@@ -370,7 +370,8 @@ class MyThread(threading.Thread):
                     'number':self.number,
                     'type':'input'
                 }
-
+                task_queue.put(my_dict)
+                while done_task_queue
             self.connection.close()
 
 
