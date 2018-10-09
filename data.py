@@ -93,6 +93,7 @@ def send_file(path, client_sock, type):
         client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
 
 
+
 def send_folder(path, client_sock, type):
     print('Sending files in the folder')
     try:
