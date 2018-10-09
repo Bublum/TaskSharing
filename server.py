@@ -21,8 +21,8 @@ HAS_CODE = False
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
-task_queue = queue.Queue() # stores list of tasks
-done_task_queue = queue.Queue() # takes data from data_server and appends its metadata it into this list.
+task_queue = queue.Queue()  # stores list of tasks
+done_task_list = []  # takes data from data_server and appends its metadata it into this list.
 
 
 def my_send(connection, data):
@@ -321,7 +321,7 @@ class MyThread(threading.Thread):
                 response = my_recv(self.connection)
 
                 type = response['type']
-                file_name = response['file_name']
+                file_names = response['file_name']
                 file_size = response['file_size']
                 chunk_size = response['chunk_size']
 
@@ -330,10 +330,10 @@ class MyThread(threading.Thread):
                 }
                 my_send(self.connection, data=msg)
 
-                for i in range(len(file_name)):
-                    file = open('input/' + each_task['client_id']+ '/' +
+                for i in range(len(file_names)):
+                    file = open('input/' + each_task['client_id'] + '/' +
                                 each_task['number'] + '/' +
-                                file_name[i], "wb")
+                                file_names[i], "wb")
                     bytes_received = file_size[i]
                     while bytes_received > 0:
 
@@ -351,14 +351,22 @@ class MyThread(threading.Thread):
 
                     file_response = {
                         "type": "file_received",
-                        "file_name": file_name[i]
+                        "file_name": file_names[i]
                     }
                     my_send(self.connection, data=file_response)
-                    print("received " + file_name[i] +' for client/number '+each_task['client_id']+
-                          '/'+each_task['number'])
+                    print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
+                          '/' + each_task['number'])
+                folder_path = os.getcwd() + '/input/' + each_task['client_id'] + '/' + \
+                              each_task['number'] + '/'
 
-                each_task['status'] = 'done'
-                done_task_queue.put(each_task)
+                done_task = {each_task['client_id'] + '_' + each_task['number']: {
+                    'file_names': file_names,
+                    'folder_path': folder_path,
+                    'status': 'done'
+                }
+                }
+
+                done_task_list.append(done_task)
 
             self.connection.close()
         else:
@@ -367,9 +375,9 @@ class MyThread(threading.Thread):
             send_code_files(connection=self.connection)
             while final_answer == 'yes':
                 my_dict = {
-                    'client_id':self.threadID,
-                    'number':self.number,
-                    'type':'input'
+                    'client_id': self.threadID,
+                    'number': self.number,
+                    'type': 'input'
                 }
                 task_queue.put(my_dict)
                 while done_task_queue
