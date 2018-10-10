@@ -96,8 +96,6 @@ def receive_folder(connection, path, received_json, type=None):
         response = {'type': received_json['type']}
     else:
         response = {'type': type}
-    connection.send(json.dumps(response).encode('utf-8'))
-    response = {'type': received_json['type']}
     my_send(connection,response)
 
     chunk_size = received_json["chunk_size"]
