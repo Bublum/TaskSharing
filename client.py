@@ -10,9 +10,9 @@ BUFFER_SIZE = 10240
 TIMEOUT = 10000000
 
 
-def execute_code(filename):
+def execute_code(path):
     start = time.time()
-    code = subprocess.Popen(["python3", filename], stdout=subprocess.PIPE)
+    code = subprocess.Popen(["python3", path], stdout=subprocess.PIPE)
 
     while code.returncode is None:
         # output = code.stdout.readline()
@@ -212,8 +212,8 @@ def main():
 
             receive_folder(s, path, data)
 
-            time_taken = execute_code("code.py")
-            os.chdir(cwd)
+            code_file_path = os.path.join(path, 'code.py')
+            time_taken = execute_code(code_file_path)
 
             response = dict()
             response['type'] = "result"
