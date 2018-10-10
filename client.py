@@ -112,11 +112,8 @@ def send_folder(connection, path, type):
         print('Didnt got response')
 
 
-def receive_folder(connection, folder, received_json):
-    cwd = os.getcwd()
-    if not os.path.exists(cwd + '/' + folder):
-        os.makedirs(cwd + '/' + folder)
-    os.chdir(cwd + '/' + folder)
+def receive_folder(connection, path, received_json):
+    os.chdir(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
@@ -134,8 +131,6 @@ def receive_folder(connection, folder, received_json):
 
     response = {'type': "acknowledge_" + received_json["type"]}
     connection.send(json.dumps(response).encode('utf-8'))
-
-    os.chdir(cwd)
 
     return
 
@@ -209,7 +204,21 @@ def main():
             receive_folder(s, "actual", data)
 
         elif data["type"] == "actual_input":
-            receive_folder(s, "actual", data)
+
+            cwd = os.getcwd()
+            if not os.path.exists(cwd + '/actual'):
+                os.makedirs(cwd + '/actual')
+            path = os.path.join(cwd, 'actual')
+
+            receive_folder(s, path, data)
+
+            time_taken = execute_code("code.py")
+            os.chdir(cwd)
+
+            response = dict()
+            response['type'] = "result"
+            response['time_taken'] = time_taken
+
 
         elif data["type"] == "error":
             pass
