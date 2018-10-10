@@ -194,7 +194,7 @@ def send_folder(connection, path, type):
                 return -1
             else:
                 print('Success')
-                return 1
+        return 1
     else:
         print('Didnt got response')
 
