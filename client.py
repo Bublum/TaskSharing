@@ -10,16 +10,21 @@ BUFFER_SIZE = 10240
 TIMEOUT = 10000000
 
 
-def execute_code(filename):
+def execute_code(path):
     start = time.time()
-    code = subprocess.Popen(["python3", filename], stdout=subprocess.PIPE)
+    # code = subprocess.Popen(["python3", path], stdout=subprocess.PIPE)
+    try:
+        code = subprocess.check_call(["python3", path], stdout=subprocess.PIPE)
 
-    while code.returncode is None:
-        # output = code.stdout.readline()
-        # s.send(output)
-        code.poll()
-    end = time.time()
-    return "{:.3f}".format(end - start)
+        # while code.returncode is None:
+        #     # output = code.stdout.readline()
+        #     # s.send(output)
+        #     code.poll()
+        end = time.time()
+        return "{:.3f}".format(end - start)
+
+    except subprocess.CalledProcessError:
+        return "FAIL"
 
 
 def receive_file(sock, file_size, file_name, chunk_size, path):
@@ -40,10 +45,6 @@ def receive_file(sock, file_size, file_name, chunk_size, path):
     return
 
 
-def send_files():
-    return
-
-
 def my_send(connection, data):
     data = json.dumps(data)
     print('send', data)
@@ -57,7 +58,7 @@ def my_recv(connection):
     return data
 
 
-def send_folder(connection, path, type):
+def send_folder(connection, path, type, time_taken=None):
     sizes = []
     # To get sizes of each file
     all_files = os.listdir(path)
@@ -73,15 +74,17 @@ def send_folder(connection, path, type):
         'chunk_size': BUFFER_SIZE,
         'file_name': all_files,
     }
+
+    if time_taken is not None:
+        msg['time_taken'] = time_taken
+
     my_send(connection, msg)
     print('waiting for acknowledge')
     response = my_recv(connection)
 
     if response['type'] == 'acknowledge_' + type:
-
         for each in range(len(all_files)):
             file_name = all_files[each]
-            # file_type = SAMPLE_TYPE[each]
             f = open(path + file_name, 'rb')
             file_size = sizes[each]
             chunk_size = BUFFER_SIZE
@@ -91,14 +94,9 @@ def send_folder(connection, path, type):
                 current = chunk_size
                 if file_size < chunk_size:
                     current = file_size
-                # print(current)
                 msg = f.read(current)
                 file_size -= current
                 connection.send(msg)
-                # temp = connection.recv(2).decode('UTF-8')
-                # print(temp)
-                # if temp != 'ok':
-                #     print('FAIL')
             print('Done:' + file_name)
 
             response = my_recv(connection)
@@ -113,7 +111,8 @@ def send_folder(connection, path, type):
 
 
 def receive_folder(connection, path, received_json):
-    # os.chdir(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
@@ -131,7 +130,6 @@ def receive_folder(connection, path, received_json):
 
     response = {'type': "acknowledge_" + received_json["type"]}
     connection.send(json.dumps(response).encode('utf-8'))
-
     return
 
 
@@ -176,48 +174,43 @@ def main():
 
         elif data["type"] == "assess":
             cwd = os.getcwd()
-            if not os.path.exists(cwd + '/' + data['type']):
-                os.makedirs(cwd + '/' + data['type'])
-            os.chdir(cwd + '/' + data['type'])
-
-            response = {'type': "acknowledge_" + data["type"]}
-            s.send(json.dumps(response).encode('utf-8'))
-
-            chunk_size = data["chunk_size"]
-
-            for i in range(len(data["file_name"])):
-                receive_file(s, data["file_size"][i], data["file_name"][i], chunk_size)
-
-                file_response = dict()
-                file_response["type"] = "file_received"
-                file_response["file_name"] = data["file_name"][i]
-
-                s.send(json.dumps(file_response).encode('utf-8'))
-                print("received " + data["file_name"][i])
-
-            # response = "All received. Executing " + data["file_name"][data["file_type"].index("code")]
-            # s.send(response.encode('utf-8'))
-            # execute_code(s, data['file_name'][data["file_type"].index("code")])
-            os.chdir(cwd)
+            path = os.path.join(cwd, data['type'])
+            receive_folder(s, path, data)
 
         elif data["type"] == "actual_code":
-            receive_folder(s, "actual", data)
+            cwd = os.getcwd()
+            path = os.path.join(cwd, 'actual')
+            receive_folder(s, path, data)
 
         elif data["type"] == "actual_input":
-
             cwd = os.getcwd()
-            if not os.path.exists(cwd + '/actual'):
-                os.makedirs(cwd + '/actual')
             path = os.path.join(cwd, 'actual')
 
             receive_folder(s, path, data)
 
-            time_taken = execute_code("code.py")
-            # os.chdir(cwd)
+            code_file_path = os.path.join(path, 'code.py')
+            output_path_join = os.path.join(path, 'output')
+            time_taken = execute_code(code_file_path)
 
-            response = dict()
-            response['type'] = "result"
-            response['time_taken'] = time_taken
+            if time_taken == "FAIL":
+                response = {'type': 'finished', 'status': 'failure'}
+                s.send(json.dumps(response).encode('utf-8'))
+
+            else:
+                response = {'type': 'finished', 'status': 'success'}
+                s.send(json.dumps(response).encode('utf-8'))
+
+            print("Waiting for server..")
+            received = s.recv(BUFFER_SIZE)
+            print(received)
+            received = received.decode('utf-8')
+            data = json.loads(received)
+
+            if data["type"] == "acknowledge_finished" and time_taken!="FAIL":
+                send_folder(s, output_path_join, "result", time_taken)
 
         elif data["type"] == "error":
             pass
+
+
+main()
