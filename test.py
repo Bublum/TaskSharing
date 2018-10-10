@@ -1,8 +1,8 @@
-import time
+import select, sys
 
-start_time = time.time()
-choice = ''
-while time.time() <= start_time + 2 or choice == '':
-    choice = input()
+i, o, e = select.select([sys.stdin], [], [], 2)
 
-print("aftr")
+if (i):
+  print("You said", sys.stdin.readline().strip())
+else:
+  print("You said nothing!")
