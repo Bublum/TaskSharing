@@ -94,7 +94,6 @@ def receive_folder(connection, path, received_json):
 
     response = {'type': received_json['type']}
     my_send(connection,response)
-
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
         receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
