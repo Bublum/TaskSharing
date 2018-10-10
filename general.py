@@ -91,7 +91,7 @@ def receive_folder(connection, path, received_json):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    response = {'type': "acknowledge_" + received_json['type']}
+    response = {'type': received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
 
     chunk_size = received_json["chunk_size"]
