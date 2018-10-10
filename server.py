@@ -58,6 +58,8 @@ def receive_file(sock, file_size, file_name, chunk_size, path):
 
 def receive_folder(connection, path, received_json):
     # os.chdir(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
@@ -192,7 +194,7 @@ def send_folder(connection, path, type):
                 return -1
             else:
                 print('Success')
-                return 1
+        return 1
     else:
         print('Didnt got response')
 
@@ -355,12 +357,13 @@ class MyThread(threading.Thread):
                 }
                 my_send(self.connection, data=file_response)
                 print("received " + file_name[i])
-
+            global HAS_CODE
+            HAS_CODE = True
             while True:
                 each_task = task_queue.get()
                 if each_task['type'] == 'send_output':
                     each_task['type'] = 'output'
-                my_send(self.connection, data=json.dumps(each_task))
+                my_send(self.connection, data=each_task)
                 response = my_recv(self.connection)
 
                 type = response['type']
@@ -373,11 +376,15 @@ class MyThread(threading.Thread):
                 }
                 my_send(self.connection, data=msg)
 
-                if type == 'input':
-                    for i in range(len(file_name)):
-                        file = open('input/' + each_task['client_id'] + '/' +
-                                    each_task['number'] + '/' +
-                                    file_name[i], "wb")
+                if type == 'get_input':
+                    path = 'input/' + str(each_task['client_id']) + '/' + str(each_task['number']) + '/'
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+
+                    # receive_folder(self.connection, path, response)
+                    for i in range(len(file_names)):
+                        file = open(path +
+                                    file_names[i], "wb")
                         bytes_received = file_size[i]
                         while bytes_received > 0:
 
@@ -398,16 +405,17 @@ class MyThread(threading.Thread):
                             "file_name": file_names[i]
                         }
                         my_send(self.connection, data=file_response)
-                        print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
-                              '/' + each_task['number'])
-                    folder_path = os.getcwd() + '/input/' + each_task['client_id'] + '/' + \
-                                  each_task['number'] + '/'
+                        print("received " + file_names[i] + ' for client/number ' + str(each_task['client_id']) +
+                              '/' + str(each_task['number']))
+                    folder_path = os.getcwd() + '/input/' + str(each_task['client_id']) + '/' + \
+                                  str(each_task['number']) + '/'
 
-                    done_task = {each_task['client_id'] + '_' + each_task['number']: {
-                        'file_names': file_names,
-                        'folder_path': folder_path,
-                        'status': 'done'
-                    }
+                    done_task = {
+                        str(each_task['client_id']) + '_' + str(each_task['number']): {
+                            'file_names': file_names,
+                            'folder_path': folder_path,
+                            'status': 'done'
+                        }
                     }
 
                     done_task_list.append(done_task)
@@ -431,9 +439,10 @@ class MyThread(threading.Thread):
 
                 response = my_recv(self.connection)
 
-                if request['type'] == 'response_input':
-                    final_answer = request['response']
-                    if request['response'] == 'yes':
+                if response['type'] == 'response_input':
+                    final_answer = response['response']
+                    if response['response'] == 'yes':
+                        print('Got yes')
                         my_dict = {
                             'client_id': self.threadID,
                             'number': self.number,
@@ -459,7 +468,7 @@ class MyThread(threading.Thread):
                             recv_response = my_recv(self.connection)
                         if recv_response['type'] == 'finished':
                             temp_response = {
-                                'type': 'aknowledge_' + recv_response['type']
+                                'type': 'acknowledge_' + recv_response['type']
                             }
 
                             my_send(self.connection, temp_response)
@@ -477,6 +486,8 @@ class MyThread(threading.Thread):
                         else:
                             print('Got type not finished')
                         self.number += 1
+                    else:
+                        print('got NO')
 
             self.connection.close()
             threading.Thread.join(self)
