@@ -22,8 +22,8 @@ def execute_code(filename):
     return "{:.3f}".format(end - start)
 
 
-def receive_file(sock, file_size, file_name, chunk_size):
-    file = open(file_name, "wb")
+def receive_file(sock, file_size, file_name, chunk_size, path):
+    file = open(path + file_name, "wb")
 
     while file_size > 0:
         current = chunk_size
@@ -112,30 +112,25 @@ def send_folder(connection, path, type):
         print('Didnt got response')
 
 
-def receive_folder(connection, folder, received_json):
-    cwd = os.getcwd()
-    if not os.path.exists(cwd + '/' + folder):
-        os.makedirs(cwd + '/' + folder)
-    os.chdir(cwd + '/' + folder)
+def receive_folder(connection, path, received_json):
+    # os.chdir(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
 
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
-        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size)
+        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
 
         file_response = dict()
         file_response["type"] = "file_received"
         file_response["file_name"] = received_json["file_name"][i]
 
-        s.send(json.dumps(file_response).encode('utf-8'))
+        connection.send(json.dumps(file_response).encode('utf-8'))
         print("received " + received_json["file_name"][i])
 
     response = {'type': "acknowledge_" + received_json["type"]}
     connection.send(json.dumps(response).encode('utf-8'))
-
-    os.chdir(cwd)
 
     return
 
@@ -209,7 +204,20 @@ def main():
             receive_folder(s, "actual", data)
 
         elif data["type"] == "actual_input":
-            pass
+
+            cwd = os.getcwd()
+            if not os.path.exists(cwd + '/actual'):
+                os.makedirs(cwd + '/actual')
+            path = os.path.join(cwd, 'actual')
+
+            receive_folder(s, path, data)
+
+            time_taken = execute_code("code.py")
+            # os.chdir(cwd)
+
+            response = dict()
+            response['type'] = "result"
+            response['time_taken'] = time_taken
 
         elif data["type"] == "error":
             pass
