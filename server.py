@@ -374,6 +374,7 @@ class MyThread(threading.Thread):
                                     'path': path
                                 }
                                 task_queue.put(task_json)
+                                print('Inserted into task')
 
                         else:
                             print('Got type not finished')
