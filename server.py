@@ -5,6 +5,8 @@ import json
 import queue
 import math
 
+from general import my_send, my_recv, send_folder, receive_folder
+
 COUNTER = 0
 
 ASSESS_DIR = os.getcwd() + '/assess/'
@@ -17,68 +19,12 @@ HAS_SAMPLE = True
 SAMPLE_FILE = ['sample_code.py', 'sample.mkv', 'sample_code2.py']
 SAMPLE_TYPE = ['code', 'input', 'input']
 
-HAS_CODE = False
+HAS_CODE = True
 
 BUFFER_SIZE = 10240  # Normally 1024, but we want fast response
 
 task_queue = queue.Queue()  # stores list of tasks
 done_task_list = []  # takes data from data_server and appends its metadata it into this list.
-
-
-def my_send(connection, data):
-    data = json.dumps(data)
-    print('send', data)
-    connection.send(bytes(data, 'UTF-8'))
-
-
-def my_recv(connection):
-    data = connection.recv(BUFFER_SIZE)
-    print('recv', data)
-    data = json.loads(data.decode('UTF-8'))
-    return data
-
-
-def receive_file(sock, file_size, file_name, chunk_size, path):
-    file = open(path + file_name, "wb")
-
-    while file_size > 0:
-        current = chunk_size
-        if file_size < chunk_size:
-            current = file_size
-        print(file_size)
-        file_data = sock.recv(current)
-        file_size -= len(file_data)
-        while not file_data:
-            file_data = sock.recv(current)
-        file.write(file_data)
-
-    file.close()
-    return
-
-
-def receive_folder(connection, path, received_json):
-    # os.chdir(path)
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    response = {'type': "acknowledge_" + received_json['type']}
-    connection.send(json.dumps(response).encode('utf-8'))
-
-    chunk_size = received_json["chunk_size"]
-    for i in range(len(received_json["file_name"])):
-        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
-
-        file_response = dict()
-        file_response["type"] = "file_received"
-        file_response["file_name"] = received_json["file_name"][i]
-
-        connection.send(json.dumps(file_response).encode('utf-8'))
-        print("received " + received_json["file_name"][i])
-
-    response = {'type': "acknowledge_" + received_json["type"]}
-    connection.send(json.dumps(response).encode('utf-8'))
-
-    return
 
 
 def get_sample_data():
@@ -136,67 +82,6 @@ def get_sample_data():
 
         else:
             print('Data port not found')
-
-
-def send_folder(connection, path, type):
-    # cwd = os.getcwd()
-
-    # code_path = '/code'
-
-    # full_path = cwd + code_path + '/'
-
-    sizes = []
-    # To get sizes of each file
-    all_files = os.listdir(path)
-
-    for each in all_files:
-        file_info = os.stat(path + each)
-        file_size = file_info.st_size
-        sizes.append(file_size)
-
-    msg = {
-        'type': type,
-        'file_size': sizes,
-        'chunk_size': BUFFER_SIZE,
-        'file_name': all_files,
-    }
-    my_send(connection, msg)
-    print('waiting for acknowledge')
-    response = my_recv(connection)
-
-    if response['type'] == 'acknowledge_' + type:
-
-        for each in range(len(all_files)):
-            file_name = all_files[each]
-            # file_type = SAMPLE_TYPE[each]
-            f = open(path + file_name, 'rb')
-            file_size = sizes[each]
-            chunk_size = BUFFER_SIZE
-
-            while file_size > 0:
-                print(file_size)
-                current = chunk_size
-                if file_size < chunk_size:
-                    current = file_size
-                # print(current)
-                msg = f.read(current)
-                file_size -= current
-                connection.send(msg)
-                # temp = connection.recv(2).decode('UTF-8')
-                # print(temp)
-                # if temp != 'ok':
-                #     print('FAIL')
-            print('Done:' + file_name)
-
-            response = my_recv(connection)
-            if not (response['type'] == 'file_received' and response['file_name'] == file_name):
-                print('Failure')
-                return -1
-            else:
-                print('Success')
-        return 1
-    else:
-        print('Didnt got response')
 
 
 def send_code_files(connection):
@@ -320,7 +205,7 @@ class MyThread(threading.Thread):
                 'type': 'request',
                 'file_type': 'code'
             }
-
+            print(self.address)
             my_send(self.connection, data=msg)
             response = my_recv(self.connection)
 
@@ -355,6 +240,7 @@ class MyThread(threading.Thread):
                     "type": "file_received",
                     "file_name": file_name[i]
                 }
+                print(self.address)
                 my_send(self.connection, data=file_response)
                 print("received " + file_name[i])
             global HAS_CODE
@@ -363,20 +249,23 @@ class MyThread(threading.Thread):
                 each_task = task_queue.get()
                 if each_task['type'] == 'send_output':
                     each_task['type'] = 'output'
+
+                print(self.address)
                 my_send(self.connection, data=each_task)
                 response = my_recv(self.connection)
 
                 type = response['type']
-                file_names = response['file_name']
-                file_size = response['file_size']
-                chunk_size = response['chunk_size']
 
                 msg = {
                     'type': 'acknowledge_' + type
                 }
+                print(self.address)
                 my_send(self.connection, data=msg)
 
                 if type == 'get_input':
+                    file_names = response['file_name']
+                    file_size = response['file_size']
+                    chunk_size = response['chunk_size']
                     path = 'input/' + str(each_task['client_id']) + '/' + str(each_task['number']) + '/'
                     if not os.path.exists(path):
                         os.makedirs(path)
@@ -404,6 +293,7 @@ class MyThread(threading.Thread):
                             "type": "file_received",
                             "file_name": file_names[i]
                         }
+                        print(self.address)
                         my_send(self.connection, data=file_response)
                         print("received " + file_names[i] + ' for client/number ' + str(each_task['client_id']) +
                               '/' + str(each_task['number']))
@@ -420,11 +310,12 @@ class MyThread(threading.Thread):
 
                     done_task_list.append(done_task)
                 elif type == 'output':
+                    each_task['chunk_size'] = BUFFER_SIZE
                     send_folder(self.connection, each_task['path'], type)
                     my_recv(self.connection)
                     print("folder sent! path:  " + each_task['path'])
 
-            self.connection.close()
+            # self.connection.close()
         else:
             # assess(self.connection, self.address)
             final_answer = 'yes'
@@ -435,6 +326,7 @@ class MyThread(threading.Thread):
                     'type': 'question',
                     'question': 'input_data'
                 }
+                print(self.address)
                 my_send(self.connection, request)
 
                 response = my_recv(self.connection)
@@ -470,7 +362,7 @@ class MyThread(threading.Thread):
                             temp_response = {
                                 'type': 'acknowledge_' + recv_response['type']
                             }
-
+                            print(self.address)
                             my_send(self.connection, temp_response)
                             if recv_response['status'] == 'success':
                                 path = os.getcwd() + '/output/' + str(self.threadID) + '_' + str(self.number)
@@ -482,6 +374,7 @@ class MyThread(threading.Thread):
                                     'path': path
                                 }
                                 task_queue.put(task_json)
+                                print('Inserted into task')
 
                         else:
                             print('Got type not finished')
