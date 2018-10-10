@@ -219,6 +219,5 @@ def main():
             response['type'] = "result"
             response['time_taken'] = time_taken
 
-
         elif data["type"] == "error":
             pass
