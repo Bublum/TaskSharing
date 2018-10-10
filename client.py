@@ -22,8 +22,8 @@ def execute_code(filename):
     return "{:.3f}".format(end - start)
 
 
-def receive_file(sock, file_size, file_name, chunk_size):
-    file = open(file_name, "wb")
+def receive_file(sock, file_size, file_name, chunk_size, path):
+    file = open(path + file_name, "wb")
 
     while file_size > 0:
         current = chunk_size
@@ -113,14 +113,14 @@ def send_folder(connection, path, type):
 
 
 def receive_folder(connection, path, received_json):
-    os.chdir(path)
+    # os.chdir(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
     connection.send(json.dumps(response).encode('utf-8'))
 
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
-        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size)
+        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
 
         file_response = dict()
         file_response["type"] = "file_received"
@@ -213,7 +213,7 @@ def main():
             receive_folder(s, path, data)
 
             time_taken = execute_code("code.py")
-            os.chdir(cwd)
+            # os.chdir(cwd)
 
             response = dict()
             response['type'] = "result"

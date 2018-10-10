@@ -389,7 +389,7 @@ class MyThread(threading.Thread):
                         my_dict = {
                             'client_id': self.threadID,
                             'number': self.number,
-                            'type': 'input'
+                            'type': 'get_input'
                         }
                         task_queue.put(my_dict)
                         exists = False
