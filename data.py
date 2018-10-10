@@ -4,7 +4,6 @@ import socket
 import netifaces as ni
 import subprocess
 
-
 BUFFER_SIZE = 1024
 server_ip = '192.168.0.106'
 server_port = 9000
@@ -49,6 +48,51 @@ def my_recv(connection):
     print(data)
     data = json.loads(data.decode('UTF-8'))
     return data
+
+def receive_file(sock, file_size, file_name, chunk_size):
+    file = open(file_name, "wb")
+
+    while file_size > 0:
+        current = chunk_size
+        if file_size < chunk_size:
+            current = file_size
+        print(file_size)
+        file_data = sock.recv(current)
+        file_size -= len(file_data)
+        while not file_data:
+            file_data = sock.recv(current)
+        file.write(file_data)
+
+    file.close()
+    return
+
+
+def receive_folder(connection, folder, received_json):
+    cwd = os.getcwd()
+    if not os.path.exists(cwd + '/' + folder):
+        os.makedirs(cwd + '/' + folder)
+    os.chdir(cwd + '/' + folder)
+
+    response = {'type': "acknowledge_" + received_json['type']}
+    connection.send(json.dumps(response).encode('utf-8'))
+
+    chunk_size = received_json["chunk_size"]
+    for i in range(len(received_json["file_name"])):
+        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size)
+
+        file_response = dict()
+        file_response["type"] = "file_received"
+        file_response["file_name"] = received_json["file_name"][i]
+
+        s.send(json.dumps(file_response).encode('utf-8'))
+        print("received " + received_json["file_name"][i])
+
+    response = {'type': "acknowledge_" + received_json["type"]}
+    connection.send(json.dumps(response).encode('utf-8'))
+
+    os.chdir(cwd)
+
+    return
 
 
 def send_coordinator_init_message():
@@ -177,7 +221,7 @@ def send_folder(connection, path, type):
                 print('Success')
                 return 1
     else:
-        print('Didnt got response')
+        print('Didn\'t get response')
 
 
 def send_folder_old(path, client_sock, type):
@@ -257,6 +301,9 @@ if __name__ == '__main__':
                 send_file('server_code.py', client_sock, type='server_code')
             elif data_json['type'] == 'input':
                 send_input(client_sock, os.getcwd() + '/input', data_json['type'])
+            elif data_json['type'] == 'output':
+                my_send(client_sock,{'type' : data_json['type']})
+                receive_folder(client_sock,'output',data_json)
 
             # elif data_json['type'] == 'request':
             #     print('request')

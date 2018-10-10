@@ -377,7 +377,7 @@ class MyThread(threading.Thread):
 
                 request = {
                     'type': 'question',
-                    'question':'input_data'
+                    'question': 'input_data'
                 }
                 my_send(self.connection, request)
 
@@ -406,9 +406,6 @@ class MyThread(threading.Thread):
                         self.number += 1
 
                         send_folder(self.connection, current_task['folder_path'], 'actual_input')
-
-
-
 
             self.connection.close()
 
