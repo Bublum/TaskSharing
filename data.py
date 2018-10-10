@@ -4,6 +4,7 @@ import socket
 import netifaces as ni
 import subprocess
 
+
 BUFFER_SIZE = 1024
 server_ip = '192.168.0.106'
 server_port = 9000
@@ -134,7 +135,6 @@ def send_folder(connection, path, type):
         file_size = file_info.st_size
         sizes.append(file_size)
 
-
     msg = {
         'type': type,
         'file_size': sizes,
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket_obj.bind((data_server.ip, data_server.port))
     socket_obj.listen(1)
-    while 1:
+    while True:
         print('Waiting for connection...')
         client_sock, address = socket_obj.accept()
         if client_sock:
