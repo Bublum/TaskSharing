@@ -22,6 +22,7 @@ def receive_file(sock, file_size, file_name, chunk_size, path):
 
 
 def my_send(connection, data):
+    print(connection)
     data = json.dumps(data)
     print('send', data)
     connection.send(bytes(data, 'UTF-8'))

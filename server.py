@@ -205,7 +205,7 @@ class MyThread(threading.Thread):
                 'type': 'request',
                 'file_type': 'code'
             }
-            print(self.address)
+            # print(self.address)
             my_send(self.connection, data=msg)
             response = my_recv(self.connection)
 
@@ -240,7 +240,7 @@ class MyThread(threading.Thread):
                     "type": "file_received",
                     "file_name": file_name[i]
                 }
-                print(self.address)
+                # print(self.address)
                 my_send(self.connection, data=file_response)
                 print("received " + file_name[i])
             global HAS_CODE
@@ -250,7 +250,7 @@ class MyThread(threading.Thread):
                 if each_task['type'] == 'send_output':
                     each_task['type'] = 'output'
 
-                print(self.address)
+                # print(self.address)
                 my_send(self.connection, data=each_task)
                 response = my_recv(self.connection)
 
@@ -259,7 +259,7 @@ class MyThread(threading.Thread):
                 msg = {
                     'type': 'acknowledge_' + type
                 }
-                print(self.address)
+                # print(self.address)
                 my_send(self.connection, data=msg)
 
                 if type == 'get_input':
@@ -293,7 +293,7 @@ class MyThread(threading.Thread):
                             "type": "file_received",
                             "file_name": file_names[i]
                         }
-                        print(self.address)
+                        # print(self.address)
                         my_send(self.connection, data=file_response)
                         print("received " + file_names[i] + ' for client/number ' + str(each_task['client_id']) +
                               '/' + str(each_task['number']))
@@ -326,7 +326,7 @@ class MyThread(threading.Thread):
                     'type': 'question',
                     'question': 'input_data'
                 }
-                print(self.address)
+                # print(self.address)
                 my_send(self.connection, request)
 
                 response = my_recv(self.connection)
@@ -362,11 +362,13 @@ class MyThread(threading.Thread):
                             temp_response = {
                                 'type': 'acknowledge_' + recv_response['type']
                             }
-                            print(self.address)
+                            # print(self.address)
                             my_send(self.connection, temp_response)
                             if recv_response['status'] == 'success':
                                 path = os.getcwd() + '/output/' + str(self.threadID) + '_' + str(self.number)
-                                receive_folder(self.connection, path, my_recv(self.connection))
+                                response = my_recv(self.connection)
+                                response['type'] = 'acknowledge_' + response['type']
+                                receive_folder(self.connection, path, response)
                                 task_json = {
                                     'client_id': self.threadID,
                                     'number': self.number,
