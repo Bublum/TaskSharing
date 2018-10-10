@@ -28,6 +28,7 @@ def my_send(connection, data):
 
 
 def my_recv(connection):
+    print(connection)
     data = connection.recv(BUFFER_SIZE)
     print('recv', data)
     data = json.loads(data.decode('UTF-8'))
@@ -92,7 +93,7 @@ def receive_folder(connection, path, received_json):
         os.makedirs(path)
 
     response = {'type': received_json['type']}
-    connection.send(json.dumps(response).encode('utf-8'))
+    my_send(connection,response)
 
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
