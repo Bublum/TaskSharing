@@ -1,5 +1,4 @@
 import select
-import signal
 import socket
 import os
 import subprocess
