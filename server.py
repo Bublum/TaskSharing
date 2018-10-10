@@ -95,7 +95,7 @@ def get_sample_data():
             print('Data port not found')
 
 
-def send_folder(connection, path,type):
+def send_folder(connection, path, type):
     # cwd = os.getcwd()
 
     # code_path = '/code'
@@ -121,7 +121,7 @@ def send_folder(connection, path,type):
     print('waiting for acknowledge')
     response = my_recv(connection)
 
-    if response['type'] == 'acknowledge_actual':
+    if response['type'] == 'acknowledge_' + type:
 
         for each in range(len(all_files)):
             file_name = all_files[each]
@@ -163,7 +163,7 @@ def send_code_files(connection):
         code_path = '/code'
 
         full_path = cwd + code_path + '/'
-        send_folder(connection, full_path,'actual')
+        send_folder(connection, full_path, 'actual')
 
     else:
         msg = {
@@ -374,24 +374,6 @@ class MyThread(threading.Thread):
             final_answer = 'yes'
             send_code_files(connection=self.connection)
             while final_answer == 'yes':
-                my_dict = {
-                    'client_id': self.threadID,
-                    'number': self.number,
-                    'type': 'input'
-                }
-                task_queue.put(my_dict)
-                exists = False
-                msg = str(self.threadID) + '_' + str(self.number)
-                index = -1
-                while not exists:
-                    length = done_task_list.__len__()
-                    for i in range(length):
-                        if msg in done_task_list[i]:
-                            exists = True
-                            index = i
-                            break
-                current_task = done_task_list[index][msg]
-                self.number += 1
 
                 request = {
                     'type': 'actual_input'
@@ -403,7 +385,29 @@ class MyThread(threading.Thread):
                 if request['type'] == 'response_input':
                     final_answer = request['response']
                     if request['response'] == 'yes':
-                        send_folder(self.connection, current_task['folder_path'],'input')
+                        my_dict = {
+                            'client_id': self.threadID,
+                            'number': self.number,
+                            'type': 'input'
+                        }
+                        task_queue.put(my_dict)
+                        exists = False
+                        msg = str(self.threadID) + '_' + str(self.number)
+                        index = -1
+                        while not exists:
+                            length = done_task_list.__len__()
+                            for i in range(length):
+                                if msg in done_task_list[i]:
+                                    exists = True
+                                    index = i
+                                    break
+                        current_task = done_task_list[index][msg]
+                        self.number += 1
+
+                        send_folder(self.connection, current_task['folder_path'], 'actual_input')
+
+
+
 
             self.connection.close()
 
