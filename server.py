@@ -358,6 +358,8 @@ class MyThread(threading.Thread):
 
             while True:
                 each_task = task_queue.get()
+                if each_task['type'] == 'send_output':
+                    each_task['type'] = 'output'
                 my_send(self.connection, data=json.dumps(each_task))
                 response = my_recv(self.connection)
 
@@ -371,43 +373,48 @@ class MyThread(threading.Thread):
                 }
                 my_send(self.connection, data=msg)
 
-                for i in range(len(file_name)):
-                    file = open('input/' + each_task['client_id'] + '/' +
-                                each_task['number'] + '/' +
-                                file_name[i], "wb")
-                    bytes_received = file_size[i]
-                    while bytes_received > 0:
+                if type == 'input':
+                    for i in range(len(file_name)):
+                        file = open('input/' + each_task['client_id'] + '/' +
+                                    each_task['number'] + '/' +
+                                    file_name[i], "wb")
+                        bytes_received = file_size[i]
+                        while bytes_received > 0:
 
-                        current = chunk_size
-                        if bytes_received < chunk_size:
-                            current = bytes_received
-                        print(bytes_received)
-                        # s.settimeout(TIMEOUT)
-                        file_data = self.connection.recv(current)
-                        # print('--------' + str(len(file_data)))
-                        bytes_received -= len(file_data)
-                        file.write(file_data)
+                            current = chunk_size
+                            if bytes_received < chunk_size:
+                                current = bytes_received
+                            print(bytes_received)
+                            # s.settimeout(TIMEOUT)
+                            file_data = self.connection.recv(current)
+                            # print('--------' + str(len(file_data)))
+                            bytes_received -= len(file_data)
+                            file.write(file_data)
 
-                    file.close()
+                        file.close()
 
-                    file_response = {
-                        "type": "file_received",
-                        "file_name": file_names[i]
+                        file_response = {
+                            "type": "file_received",
+                            "file_name": file_names[i]
+                        }
+                        my_send(self.connection, data=file_response)
+                        print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
+                              '/' + each_task['number'])
+                    folder_path = os.getcwd() + '/input/' + each_task['client_id'] + '/' + \
+                                  each_task['number'] + '/'
+
+                    done_task = {each_task['client_id'] + '_' + each_task['number']: {
+                        'file_names': file_names,
+                        'folder_path': folder_path,
+                        'status': 'done'
                     }
-                    my_send(self.connection, data=file_response)
-                    print("received " + file_names[i] + ' for client/number ' + each_task['client_id'] +
-                          '/' + each_task['number'])
-                folder_path = os.getcwd() + '/input/' + each_task['client_id'] + '/' + \
-                              each_task['number'] + '/'
+                    }
 
-                done_task = {each_task['client_id'] + '_' + each_task['number']: {
-                    'file_names': file_names,
-                    'folder_path': folder_path,
-                    'status': 'done'
-                }
-                }
-
-                done_task_list.append(done_task)
+                    done_task_list.append(done_task)
+                elif type == 'output':
+                    send_folder(self.connection, each_task['path'], type)
+                    my_recv(self.connection)
+                    print("folder sent! path:  " + each_task['path'])
 
             self.connection.close()
         else:
@@ -465,12 +472,14 @@ class MyThread(threading.Thread):
                                     'type': 'send_output',
                                     'path': path
                                 }
+                                task_queue.put(task_json)
 
                         else:
                             print('Got type not finished')
                         self.number += 1
 
             self.connection.close()
+            threading.Thread.join(self)
 
 
 hostname = socket.gethostname()
