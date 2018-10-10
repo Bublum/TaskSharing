@@ -5,8 +5,8 @@ import netifaces as ni
 import subprocess
 
 BUFFER_SIZE = 1024
-server_ip = '192.168.0.106'
-server_port = 9000
+server_ip = '192.168.0.104'
+server_port = 8000
 
 input_request_counter = 0
 sent_folders = []
@@ -226,6 +226,8 @@ def send_folder(connection, path, type):
 
 def send_folder_old(path, client_sock, type):
     print('Sending files in the folder')
+    print(path)
+    print(type)
     try:
         file_names = os.listdir(os.getcwd() + path)
         file_sizes = get_file_sizes(file_names, path)
@@ -278,6 +280,7 @@ def execute_code(s, filename):
 
     s.send("Done".encode('utf-8'))
 
+debug_receive = 'request received : '
 
 if __name__ == '__main__':
     data_server = init_self(7443)
@@ -294,23 +297,29 @@ if __name__ == '__main__':
             data_json = json.loads(data)
             print(data_json)
             if data_json['type'] == 'sample_code':
+                print(debug_receive + 'sample_code')
                 send_file('test_text_file.txt', client_sock, type='sample_code')
             elif data_json['type'] == 'client_code':
+                print(debug_receive + 'client_code')
                 send_file('client_code.py', client_sock, type='client_code')
             elif data_json['type'] == 'server_code':
+                print(debug_receive + 'server_code')
                 send_file('server_code.py', client_sock, type='server_code')
             elif data_json['type'] == 'input':
+                print(debug_receive + 'input')
                 send_input(client_sock, os.getcwd() + '/input', data_json['type'])
             elif data_json['type'] == 'output':
+                print(debug_receive + 'output')
                 my_send(client_sock,{'type' : data_json['type']})
                 receive_folder(client_sock,'output',data_json)
 
-            # elif data_json['type'] == 'request':
-            #     print('request')
-            #     if data_json['file_type'] == 'code':
-            #         send_folder('/actual/code', client_sock, type='actual_codes')
-            # elif data_json['type'] == 'question':
-            #     if data_json['question'] == 'role':
-            #         client_sock.send(json.dumps({'type': 'question',
-            #                                      'role': 'data_server'}).encode('UTF-8'))
+            elif data_json['type'] == 'request':
+                print(debug_receive + 'actual code')
+                if data_json['file_type'] == 'code':
+                    send_folder_old('/actual/code', client_sock, type='actual_codes')
+            elif data_json['type'] == 'question':
+                print(debug_receive + 'role')
+                if data_json['question'] == 'role':
+                    client_sock.send(json.dumps({'type': 'question',
+                                                 'role': 'data_server'}).encode('UTF-8'))
             print('Closed connection with coordinator')

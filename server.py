@@ -456,7 +456,7 @@ class MyThread(threading.Thread):
                             }
 
                             my_send(self.connection, temp_response)
-                            if recv_response['status']=='success':
+                            if recv_response['status'] == 'success':
                                 path = os.getcwd() + '/output/' + str(self.threadID) + '_' + str(self.number)
                                 receive_folder(self.connection, path, my_recv(self.connection))
                                 task_json = {
@@ -465,7 +465,7 @@ class MyThread(threading.Thread):
                                     'type': 'send_output',
                                     'path': path
                                 }
-                                
+
                         else:
                             print('Got type not finished')
                         self.number += 1

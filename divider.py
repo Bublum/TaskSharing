@@ -10,7 +10,7 @@ output_path = cwd + '/output/'
 
 f = open(path, 'r')
 
-batch_size = 100
+batch_size = 1000
 
 
 def create_folder(path, file_name, data):
@@ -29,7 +29,7 @@ index = 0
 for each in f:
     counter += 1
     data.append(each)
-    if counter == 100:
+    if counter == batch_size:
         counter = 0
         create_folder(output_path + str(index), str(index), data)
         data = []
