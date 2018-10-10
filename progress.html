@@ -1,4 +1,3 @@
-<html>
 <head>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
@@ -11,41 +10,99 @@
     <script>
         i = 0;
         (setInterval(function () {
-            var jsonArr = [{"uid": 1, "status": "Done"},
-                {"uid": 2, "status": "Done"},
-                {"uid": 4, "status": "Started"},
-                {"uid": 5, "status": "No"}];
+            // $.ajax({
+            //     url: "http://192.168.0.108:5988", success: function (result) {
+            var result = "[{\"uid\": 1, \"status\": \"Done\"},\
+                        {\"uid\": 2, \"status\": \"Done\"},\
+                        {\"uid\": 4, \"status\": \"Started\"},\
+                        {\"uid\": 5, \"status\": \"No\"},\n\
+                        {\"uid\": 6, \"status\": \"Done\"},\n                        \
+                        {\"uid\": 7, \"status\": \"Started\"},\n\
+                        {\"uid\": 8, \"status\": \"No\"},\n\
+                        {\"uid\": 9, \"status\": \"Done\"},\n \
+                        {\"uid\": 10, \"status\": \"Started\"}]";
+
+            var jsonArr = JSON.parse(result);
+
             // obj = JSON.parse(json);
             // alert(jsonArr.length);
 
             for (var i = 0; i < jsonArr.length; i++) {
                 let each = jsonArr[i];
-                // alert(each["id"]);
-                let exists = document.getElementById("pBar" + each["uid"]);
-                let pBar;
-                if (exists == null) {
+                let pBar, parent_div;
+                if (document.getElementById("pBar" + each["uid"]) == null) {
+
+
+                    parent_div = document.createElement("div");
+                    parent_div.setAttribute("id", "parent_" + each["uid"]);
+                    parent_div.setAttribute("style", "display: inline-block");
+
                     pBar = document.createElement("div");
                     pBar.setAttribute("id", "pBar" + each["uid"]);
-                    pBar.innerHTML=each["uid"];
-                    document.getElementById("pBarDiv").appendChild(pBar);
+                    pBar.setAttribute("class", "button_class");
+                    pBar.innerHTML = each["uid"];
+
+                    parent_div.appendChild(pBar);
+                    document.getElementById("pBarDiv").appendChild(parent_div);
                 } else {
+
+                    parent_div = document.getElementById("parent_" + each["uid"]);
+
                     pBar = document.getElementById("pBar" + each["uid"]);
+                    pBar.setAttribute("class", "button_class");
+                    if (each["status"] == "Started") {
+                        let existing_load_doc = document.getElementById("load_" + each["uid"]);
+                        if (existing_load_doc != null) {
+                            if (existing_load_doc.innerText === "o") {
+                                existing_load_doc.innerHTML = "oo";
+                            } else if (existing_load_doc.innerText === "oo") {
+                                existing_load_doc.innerHTML = "ooo";
+                            } else if (existing_load_doc.innerText === "ooo") {
+                                existing_load_doc.innerHTML = "o";
+                            }
+                        } else {
+                            let load_doc = document.createElement("div");
+                            // load_doc.setAttribute("style", "float: left");
+                            load_doc.setAttribute("id", "load_" + each["uid"]);
+                            load_doc.innerHTML = "o";
+                            parent_div.appendChild(load_doc);
+                        }
+                    }else {
+                        let existing_load_doc = document.getElementById("load_" + each["uid"]);
+                        if (existing_load_doc == null) {
+                            let load_doc = document.createElement("div");
+                            load_doc.setAttribute("id", "load_" + each["uid"]);
+                            load_doc.innerHTML = ".";
+                            parent_div.appendChild(load_doc);
+                        }
+                    }
+
+
                 }
-                if (each["status"] == "Done") {
-                    pBar.setAttribute("class", "btn btn-success");
-                } else if (each["status"] == "Started") {
-                    pBar.setAttribute("class", "btn btn-warning");
+
+                if (each["status"] === "Done") {
+                    pBar.setAttribute("class", "btn btn-success button_class");
+                } else if (each["status"] === "Started") {
+                    pBar.setAttribute("class", "btn btn-warning button_class");
                 } else {
-                    pBar.setAttribute("class", "btn btn");
+                    pBar.setAttribute("class", "btn btn-disabled button_class");
                 }
 
             }
+            //     }
+            // });
+
         }, 1000))
     </script>
+    <style>
+        .button_class {
+            margin: 1%;
+        }
+    </style>
 
 </head>
-
-<div id="pBarDiv" class="container">
+<br/>
+<div id="pBarDiv" class="container" align="center">
 
 </div>
 
