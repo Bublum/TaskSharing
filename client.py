@@ -4,8 +4,8 @@ import subprocess
 import json
 import time
 
-TCP_IP = '192.168.0.113'
-TCP_PORT = 7800
+TCP_IP = '192.168.0.105'
+TCP_PORT = int(input('Enter Port: '))
 BUFFER_SIZE = 10240
 TIMEOUT = 10000000
 
@@ -28,7 +28,7 @@ def execute_code(path):
 
 
 def receive_file(sock, file_size, file_name, chunk_size, path):
-    file = open(path + file_name, "wb")
+    file = open(os.path.join(path, file_name), "wb")
 
     while file_size > 0:
         current = chunk_size
@@ -127,9 +127,6 @@ def receive_folder(connection, path, received_json):
 
         connection.send(json.dumps(file_response).encode('utf-8'))
         print("received " + received_json["file_name"][i])
-
-    response = {'type': "acknowledge_" + received_json["type"]}
-    connection.send(json.dumps(response).encode('utf-8'))
     return
 
 
@@ -156,7 +153,7 @@ def main():
 
             elif data["question"] == "input_data":
                 print("Do you want to continue(y/n): ", end="")
-                choice = 'n'
+                choice = 'y'
                 start_time = time.time()
                 while time.time() <= start_time + 5:
                     choice = input()
@@ -210,7 +207,7 @@ def main():
                 send_folder(s, output_path_join, "result", time_taken)
 
         elif data["type"] == "error":
-            pass
+            print("Error" + data['error'])
 
 
 main()
