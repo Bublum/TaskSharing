@@ -64,7 +64,7 @@ def send_folder(connection, path, type, time_taken=None):
     all_files = os.listdir(path)
 
     for each in all_files:
-        file_info = os.stat(path + each)
+        file_info = os.stat(os.path.join(path, each))
         file_size = file_info.st_size
         sizes.append(file_size)
 
@@ -86,7 +86,7 @@ def send_folder(connection, path, type, time_taken=None):
     if response['type'] == 'acknowledge_' + type:
         for each in range(len(all_files)):
             file_name = all_files[each]
-            f = open(path + file_name, 'rb')
+            f = open(os.path.join(path, file_name), 'rb')
             file_size = sizes[each]
             chunk_size = BUFFER_SIZE
 
@@ -108,7 +108,7 @@ def send_folder(connection, path, type, time_taken=None):
                 print('Success')
         return 1
     else:
-        print('Didnt got response')
+        print('Didn\'t got response')
 
 
 def receive_folder(connection, path, received_json):
@@ -154,9 +154,9 @@ def main():
 
             elif data["question"] == "input_data":
                 print("Do you want to continue(y/n): ", end="")
-                choice = 'y'
+                choice = ''
                 start_time = time.time()
-                while time.time() <= start_time + 5:
+                while time.time() <= start_time + 5 and choice=='':
                     choice = input()
 
                 response = {'type': "response_input"}
