@@ -70,18 +70,18 @@ def main():
         elif data["type"] == "assess":
             cwd = os.getcwd()
             path = os.path.join(cwd, data['type'])
-            general.receive_folder(s, path, data)
+            general.receive_folder(s, path, data,"acknowledge_assess")
 
         elif data["type"] == "actual_code":
             cwd = os.getcwd()
             path = os.path.join(cwd, 'actual')
-            general.receive_folder(s, path, data)
+            general.receive_folder(s, path, data, "acknowledge_actual_code")
 
         elif data["type"] == "actual_input":
             cwd = os.getcwd()
             path = os.path.join(cwd, 'actual')
 
-            general.receive_folder(s, path, data)
+            general.receive_folder(s, path, data,"acknowledge_actual_input")
 
             code_file_path = os.path.join(path, 'code.py')
             output_path_join = os.path.join(path, 'output')
