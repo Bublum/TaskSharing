@@ -38,6 +38,47 @@ def my_recv(connection):
     return data
 
 
+def receive_file(sock, file_size, file_name, chunk_size, path):
+    file = open(path + file_name, "wb")
+
+    while file_size > 0:
+        current = chunk_size
+        if file_size < chunk_size:
+            current = file_size
+        print(file_size)
+        file_data = sock.recv(current)
+        file_size -= len(file_data)
+        while not file_data:
+            file_data = sock.recv(current)
+        file.write(file_data)
+
+    file.close()
+    return
+
+
+def receive_folder(connection, path, received_json):
+    # os.chdir(path)
+
+    response = {'type': "acknowledge_" + received_json['type']}
+    connection.send(json.dumps(response).encode('utf-8'))
+
+    chunk_size = received_json["chunk_size"]
+    for i in range(len(received_json["file_name"])):
+        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
+
+        file_response = dict()
+        file_response["type"] = "file_received"
+        file_response["file_name"] = received_json["file_name"][i]
+
+        connection.send(json.dumps(file_response).encode('utf-8'))
+        print("received " + received_json["file_name"][i])
+
+    response = {'type': "acknowledge_" + received_json["type"]}
+    connection.send(json.dumps(response).encode('utf-8'))
+
+    return
+
+
 def get_sample_data():
     global HAS_SAMPLE
     global DATA_IP
@@ -377,7 +418,7 @@ class MyThread(threading.Thread):
 
                 request = {
                     'type': 'question',
-                    'question':'input_data'
+                    'question': 'input_data'
                 }
                 my_send(self.connection, request)
 
@@ -403,12 +444,28 @@ class MyThread(threading.Thread):
                                     index = i
                                     break
                         current_task = done_task_list[index][msg]
-                        self.number += 1
 
                         send_folder(self.connection, current_task['folder_path'], 'actual_input')
 
-
-
+                        recv_response = my_recv(self.connection)
+                        while not recv_response:
+                            recv_response = my_recv(self.connection)
+                        if recv_response['type'] == 'finished':
+                            temp_response = {
+                                'type': 'aknowledge_' + recv_response['type']
+                            }
+                            my_send(self.connection, temp_response)
+                            path = os.getcwd() + '/output/' + str(self.threadID) + '_' + str(self.number)
+                            receive_folder(self.connection, path, my_recv(self.connection))
+                            task_json = {
+                                'client_id': self.threadID,
+                                'number': self.number,
+                                'type': 'send_output',
+                                'path': path
+                            }
+                        else:
+                            print('Got type not finished')
+                        self.number += 1
 
             self.connection.close()
 
