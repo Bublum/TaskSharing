@@ -2,8 +2,11 @@ import json
 import os
 
 
+
 BUFFER_SIZE = 10240
 
+
+# 192.168.0.105
 
 def receive_file(sock, file_size, file_name, chunk_size, path):
     file = open(os.path.join(path, file_name), "wb")
@@ -24,14 +27,14 @@ def receive_file(sock, file_size, file_name, chunk_size, path):
 
 
 def my_send(connection, data):
-    print(connection)
+    # print(connection)
     data = json.dumps(data)
     print('send', data)
     connection.send(bytes(data, 'UTF-8'))
 
 
 def my_recv(connection):
-    print(connection)
+    # print(connection)
     data = connection.recv(BUFFER_SIZE)
     print('recv', data)
     data = json.loads(data.decode('UTF-8'))
@@ -88,7 +91,7 @@ def send_folder(connection, path, type, time_taken=None):
                 print('Success')
         return 1
     else:
-        print('Didn\'t got response')
+        print('Didn\'t got response', response['type'], type)
 
 
 def receive_folder(connection, path, received_json, type=None):

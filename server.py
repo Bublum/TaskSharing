@@ -246,76 +246,84 @@ class MyThread(threading.Thread):
             global HAS_CODE
             HAS_CODE = True
             while True:
-                each_task = task_queue.get()
-                if each_task['type'] == 'send_output':
-                    each_task['type'] = 'output'
+                # print(task_queue.empty())
+                if not task_queue.empty():
+                    each_task = task_queue.get()
+                    if each_task['type'] == 'send_output':
+                        each_task['type'] = 'output'
 
-                # print(self.address)
-                my_send(self.connection, data=each_task)
-                response = my_recv(self.connection)
+                    # print(self.address)
+                    my_send(self.connection, data=each_task)
+                    response = my_recv(self.connection)
 
-                type = response['type']
+                    type = response['type']
 
-                msg = {
-                    'type': 'acknowledge_' + type
-                }
-                # print(self.address)
-                my_send(self.connection, data=msg)
 
-                if type == 'get_input':
-                    file_names = response['file_name']
-                    file_size = response['file_size']
-                    chunk_size = response['chunk_size']
-                    path = 'input/' + str(each_task['client_id']) + '/' + str(each_task['number']) + '/'
-                    if not os.path.exists(path):
-                        os.makedirs(path)
 
-                    # receive_folder(self.connection, path, response)
-                    for i in range(len(file_names)):
-                        file = open(path +
-                                    file_names[i], "wb")
-                        bytes_received = file_size[i]
-                        while bytes_received > 0:
-
-                            current = chunk_size
-                            if bytes_received < chunk_size:
-                                current = bytes_received
-                            print(bytes_received)
-                            # s.settimeout(TIMEOUT)
-                            file_data = self.connection.recv(current)
-                            # print('--------' + str(len(file_data)))
-                            bytes_received -= len(file_data)
-                            file.write(file_data)
-
-                        file.close()
-
-                        file_response = {
-                            "type": "file_received",
-                            "file_name": file_names[i]
+                    if type == 'get_input':
+                        msg = {
+                            'type': 'acknowledge_' + type
                         }
                         # print(self.address)
-                        my_send(self.connection, data=file_response)
-                        print("received " + file_names[i] + ' for client/number ' + str(each_task['client_id']) +
-                              '/' + str(each_task['number']))
-                    folder_path = os.getcwd() + '/input/' + str(each_task['client_id']) + '/' + \
-                                  str(each_task['number']) + '/'
+                        my_send(self.connection, data=msg)
+                        file_names = response['file_name']
+                        file_size = response['file_size']
+                        chunk_size = response['chunk_size']
+                        path = 'input/' + str(each_task['client_id']) + '/' + str(each_task['number']) + '/'
+                        if not os.path.exists(path):
+                            os.makedirs(path)
 
-                    done_task = {
-                        str(each_task['client_id']) + '_' + str(each_task['number']): {
-                            'file_names': file_names,
-                            'folder_path': folder_path,
-                            'status': 'done'
+                        # receive_folder(self.connection, path, response)
+                        for i in range(len(file_names)):
+                            file = open(path +
+                                        file_names[i], "wb")
+                            bytes_received = file_size[i]
+                            while bytes_received > 0:
+
+                                current = chunk_size
+                                if bytes_received < chunk_size:
+                                    current = bytes_received
+                                print(bytes_received)
+                                # s.settimeout(TIMEOUT)
+                                file_data = self.connection.recv(current)
+                                # print('--------' + str(len(file_data)))
+                                bytes_received -= len(file_data)
+                                file.write(file_data)
+
+                            file.close()
+
+                            file_response = {
+                                "type": "file_received",
+                                "file_name": file_names[i]
+                            }
+                            # print(self.address)
+                            my_send(self.connection, data=file_response)
+                            print("received " + file_names[i] + ' for client/number ' + str(each_task['client_id']) +
+                                  '/' + str(each_task['number']))
+                        folder_path = os.getcwd() + '/input/' + str(each_task['client_id']) + '/' + \
+                                      str(each_task['number']) + '/'
+
+                        done_task = {
+                            str(each_task['client_id']) + '_' + str(each_task['number']): {
+                                'file_names': file_names,
+                                'folder_path': folder_path,
+                                'status': 'done'
+                            }
                         }
-                    }
 
-                    done_task_list.append(done_task)
-                elif type == 'output':
-                    each_task['chunk_size'] = BUFFER_SIZE
-                    send_folder(self.connection, each_task['path'], type)
-                    my_recv(self.connection)
-                    print("folder sent! path:  " + each_task['path'])
+                        done_task_list.append(done_task)
+                    elif type == 'acknowledge_output':
+                        msg = {
+                            'type': type
+                        }
+                        # print(self.address)
+                        # my_send(self.connection, data=msg)
+                        each_task['chunk_size'] = BUFFER_SIZE
+                        send_folder(self.connection, each_task['path'], 'output_files')
+                        # my_recv(self.connection)
+                        print("folder sent! path:  " + each_task['path'])
 
-            # self.connection.close()
+                # self.connection.close()
         else:
             # assess(self.connection, self.address)
             final_answer = 'yes'
