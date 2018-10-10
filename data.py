@@ -134,7 +134,8 @@ def send_folder(connection, path, type):
         file_size = file_info.st_size
         sizes.append(file_size)
 
-        
+
+
 
     msg = {
         'type': type,
