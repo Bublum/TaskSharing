@@ -129,7 +129,7 @@ def receive_folder(connection, folder, received_json):
         file_response["type"] = "file_received"
         file_response["file_name"] = received_json["file_name"][i]
 
-        s.send(json.dumps(file_response).encode('utf-8'))
+        connection.send(json.dumps(file_response).encode('utf-8'))
         print("received " + received_json["file_name"][i])
 
     response = {'type': "acknowledge_" + received_json["type"]}
@@ -209,7 +209,7 @@ def main():
             receive_folder(s, "actual", data)
 
         elif data["type"] == "actual_input":
-            pass
+            receive_folder(s, "actual", data)
 
         elif data["type"] == "error":
             pass
