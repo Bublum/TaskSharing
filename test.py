@@ -1,5 +1,8 @@
-import random
-file = open('input_data.txt','wt')
-for i in range(100000):
-    x = random.randint(1,10000)
-    file.write(str(x)+'\n')
+import time
+
+start_time = time.time()
+choice = ''
+while time.time() <= start_time + 2 or choice == '':
+    choice = input()
+
+print("aftr")

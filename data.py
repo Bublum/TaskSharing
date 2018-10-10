@@ -3,6 +3,9 @@ import os
 import socket
 import netifaces as ni
 import subprocess
+from _thread import start_new_thread
+
+
 
 from general import my_recv, my_send, send_folder, receive_folder
 
@@ -10,9 +13,17 @@ BUFFER_SIZE = 1024
 server_ip = '192.168.0.105'
 server_port = int(input('Enter port'))
 
-
-input_request_counter = 0
-sent_folders = []
+folder_names = os.listdir(os.getcwd() + '/actual/data/input')
+all_folders = []
+for name in folder_names:
+    folder_info = {
+        'folder': name,
+        'status': 'no',
+        'uid': '',
+        'success': 'yes'
+    }
+    all_folders.append(folder_info)
+print(all_folders)
 
 
 class DataServer:
@@ -77,9 +88,6 @@ def receive_file(sock, file_size, file_name, chunk_size):
     return
 
 
-
-
-
 def send_coordinator_init_message():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((server_ip, server_port))
@@ -140,18 +148,35 @@ def get_file_types(file_names):
     return types
 
 
-def send_input(connection, path, type):
+def send_input(connection, path, data_json):
+    type = data_json['type']
     print('input path is : ' + path)
-    all_folders = os.listdir(path)
-    left_folders = [x for x in all_folders if x not in sent_folders]
-    print(all_folders)
-    print(left_folders)
-    if left_folders:
-        path = path + '/' + left_folders[0] + '/'
-        sent_folders.append(left_folders[0])
+    found = False
+    index = 0
+    for each in all_folders:
+        if each['status'] == 'no':
+            found = True
+            break
+        index += 1
+    if found:
+        path = path + '/' + all_folders[index]['folder']
+        all_folders[index]['status'] = 'processing'
+        all_folders[index]['uid'] = str(data_json['client_id']) + '_' + str(data_json['number'])
         send_folder(connection, path, type)
     else:
         print('All folders sent')
+
+    # all_folders = os.listdir(path)
+    # left_folders = [x for x in all_folders if x not in sent_folders]
+    # print(str(len(all_folders)) + str(all_folders))
+    # print(str(len(left_folders)) + str(left_folders))
+    # if left_folders:
+    #     path = path + '/' + left_folders[0] + '/'
+    #     print('adding to sent_folders[] : ' + str(left_folders[0]))
+    #     sent_folders.append(left_folders[0])
+    #     send_folder(connection, path, type)
+    # else:
+    #     print('All folders sent')
 
 
 # def send_folder(connection, path, type):
@@ -277,48 +302,77 @@ def execute_code(s, filename):
 
 debug_receive = 'request received : '
 
-if __name__ == '__main__':
-    data_server = init_self(7443)
-    s = send_coordinator_init_message()
-    # socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # socket_obj.bind((data_server.ip, data_server.port))
-    # socket_obj.listen(1)
-    while True:
-        print('\n\nWaiting for connection...')
-        # client_sock, address = socket_obj.accept()
-        data_json = my_recv(s)
-        print(data_json)
-        if data_json:
-            print('Connection with coordinator established.')
-            # data = client_sock.recv(BUFFER_SIZE)
-            # data_json = json.loads(data)
-            print(data_json)
-            # if data_json['type'] == 'sample_code':
-            #     print(debug_receive + 'sample_code')
-            #     send_file('test_text_file.txt', s, type='sample_code')
-            # elif data_json['type'] == 'client_code':
-            #     print(debug_receive + 'client_code')
-            #     send_file('client_code.py', s, type='client_code')
-            # elif data_json['type'] == 'server_code':
-            #     print(debug_receive + 'server_code')
-            #     send_file('server_code.py', s, type='server_code')
-            if data_json['type'] == 'get_input':
-                print(debug_receive + 'input')
-                send_input(s, os.getcwd() + '/actual/data/input', data_json['type'])
-            elif data_json['type'] == 'output':
-                print(debug_receive + 'output')
-                # my_send(s, {'type': data_json['type']})
-                receive_folder(s, 'output', data_json)
 
-            elif data_json['type'] == 'request':
-                print(debug_receive + 'actual code')
-                if data_json['file_type'] == 'code':
-                    send_folder_old('/actual/code', s, type='actual_codes')
-            elif data_json['type'] == 'question':
-                print(debug_receive + 'role')
-                if data_json['question'] == 'role':
-                    s.send(json.dumps({'type': 'question',
-                                       'role': 'data_server'}).encode('UTF-8'))
-            print('Task Completed')
-        else:
-            print('In else')
+
+data_server = init_self(7443)
+s = send_coordinator_init_message()
+# socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# socket_obj.bind((data_server.ip, data_server.port))
+# socket_obj.listen(1)
+while True:
+    print('\n\nWaiting for connection...')
+    # client_sock, address = socket_obj.accept()
+    data_json = my_recv(s)
+    # print(data_json)
+    if data_json:
+        # print('Connection with coordinator established.')
+        # data = client_sock.recv(BUFFER_SIZE)
+        # data_json = json.loads(data)
+        # print(data_json)
+        # if data_json['type'] == 'sample_code':
+        #     print(debug_receive + 'sample_code')
+        #     send_file('test_text_file.txt', s, type='sample_code')
+        # elif data_json['type'] == 'client_code':
+        #     print(debug_receive + 'client_code')
+        #     send_file('client_code.py', s, type='client_code')
+        # elif data_json['type'] == 'server_code':
+        #     print(debug_receive + 'server_code')
+        #     send_file('server_code.py', s, type='server_code')
+        if data_json['type'] == 'get_input':
+            # print(debug_receive + 'input')
+            print('get_input')
+            send_input(s, os.getcwd() + '/actual/data/input', data_json)
+        elif data_json['type'] == 'output':
+            # print(debug_receive + 'output')
+            folder_info = data_json
+            uid = str(folder_info['client_id']) + '_' + str(folder_info['number'])
+            print('uid is : ' + uid)
+            # all_folders
+            for folders in all_folders:
+                print(folders)
+                if folders['uid'] == uid:
+                    print('changing folders dict : ' + str(folders))
+                    folders['status'] = 'done'
+                    print('output folder received : ' + str(uid))
+                    break
+            my_send(s, {'type': 'acknowledge_output'})
+            recv_json = my_recv(s)
+
+            receive_folder(s, 'output/' + str(folder_info['client_id']) + '_' + str(folder_info['number']),
+                           recv_json, type='acknowledge_output_files')
+
+        elif data_json['type'] == 'request':
+            print(debug_receive + 'actual code')
+            if data_json['file_type'] == 'code':
+                send_folder_old('/actual/code', s, type='actual_codes')
+        elif data_json['type'] == 'question':
+            print(debug_receive + 'role')
+            if data_json['question'] == 'role':
+                s.send(json.dumps({'type': 'question',
+                                   'role': 'data_server'}).encode('UTF-8'))
+        print('Task Completed')
+        print(all_folders)
+    else:
+        print('In else')
+
+
+def request_handler():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('192.168.0.108', 5988))
+    s.listen(100)
+    conn , addr = s.accept()
+
+    
+
+#
+start_new_thread(request_handler)
