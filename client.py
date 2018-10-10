@@ -4,8 +4,8 @@ import subprocess
 import json
 import time
 
-TCP_IP = '192.168.0.113'
-TCP_PORT = 7800
+TCP_IP = '192.168.0.105'
+TCP_PORT = 8365
 BUFFER_SIZE = 10240
 TIMEOUT = 10000000
 
@@ -115,7 +115,8 @@ def receive_folder(connection, path, received_json):
         os.makedirs(path)
 
     response = {'type': "acknowledge_" + received_json['type']}
-    connection.send(json.dumps(response).encode('utf-8'))
+    # connection.send(json.dumps(response).encode('utf-8'))
+    my_send(connection, data=response)
 
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
@@ -125,11 +126,13 @@ def receive_folder(connection, path, received_json):
         file_response["type"] = "file_received"
         file_response["file_name"] = received_json["file_name"][i]
 
-        connection.send(json.dumps(file_response).encode('utf-8'))
+        # connection.send(json.dumps(file_response).encode('utf-8'))
+        my_send(connection, data=file_response)
         print("received " + received_json["file_name"][i])
 
     response = {'type': "acknowledge_" + received_json["type"]}
-    connection.send(json.dumps(response).encode('utf-8'))
+    # connection.send(json.dumps(response).encode('utf-8'))
+    my_send(connection, data=response)
     return
 
 

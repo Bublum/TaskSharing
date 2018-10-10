@@ -1,0 +1,52 @@
+<html>
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <script>
+        i = 0;
+        (setInterval(function () {
+            var jsonArr = [{"uid": 1, "status": "Done"},
+                {"uid": 2, "status": "Done"},
+                {"uid": 4, "status": "Started"},
+                {"uid": 5, "status": "No"}];
+            // obj = JSON.parse(json);
+            // alert(jsonArr.length);
+
+            for (var i = 0; i < jsonArr.length; i++) {
+                let each = jsonArr[i];
+                // alert(each["id"]);
+                let exists = document.getElementById("pBar" + each["uid"]);
+                let pBar;
+                if (exists == null) {
+                    pBar = document.createElement("div");
+                    pBar.setAttribute("id", "pBar" + each["uid"]);
+                    pBar.innerHTML=each["uid"];
+                    document.getElementById("pBarDiv").appendChild(pBar);
+                } else {
+                    pBar = document.getElementById("pBar" + each["uid"]);
+                }
+                if (each["status"] == "Done") {
+                    pBar.setAttribute("class", "btn btn-success");
+                } else if (each["status"] == "Started") {
+                    pBar.setAttribute("class", "btn btn-warning");
+                } else {
+                    pBar.setAttribute("class", "btn btn");
+                }
+
+            }
+        }, 1000))
+    </script>
+
+</head>
+
+<div id="pBarDiv" class="container">
+
+</div>
+
+</html>
