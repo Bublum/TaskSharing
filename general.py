@@ -89,10 +89,15 @@ def send_folder(connection, path, type, time_taken=None):
         print('Didn\'t got response')
 
 
-def receive_folder(connection, path, received_json):
+def receive_folder(connection, path, received_json, type=None):
     if not os.path.exists(path):
         os.makedirs(path)
 
+    if type is None:
+        response = {'type': received_json['type']}
+    else:
+        response = {'type': type}
+    connection.send(json.dumps(response).encode('utf-8'))
     response = {'type': received_json['type']}
     my_send(connection,response)
 
