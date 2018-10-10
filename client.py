@@ -57,7 +57,6 @@ def main():
                 print("Do you want to continue(y/n): ", end="")
                 sys.stdout.flush()
                 choice = 'y'
-                # start_time = time.time()
 
                 i, o, e = select.select([sys.stdin], [], [], TIMEOUT)
 
@@ -94,7 +93,7 @@ def main():
             general.receive_folder(s, path, data, "acknowledge_actual_input")
 
             code_file_path = os.path.join(path, 'code.py')
-            output_path_join = os.path.join(path, 'output')
+            output_path = os.path.join(path, 'output')
 
             time.sleep(1)
             time_taken = execute_code(code_file_path)
@@ -114,10 +113,20 @@ def main():
             data = json.loads(received)
 
             if data["type"] == "acknowledge_finished" and time_taken != "FAIL":
-                general.send_folder(s, output_path_join, "result", time_taken)
+                general.send_folder(s, output_path, "result", time_taken)
+
+                # time.sleep(30)
+                os.remove(os.path.join(path, 'input.txt'))
+
+                # for files in os.listdir(output_path):
+                #     file_path = os.path.join(output_path, files)
+                #     os.remove(file_path)
+                # os.remove(output_path)
+
+                subprocess.Popen(['rm', '-rf', output_path])
 
         elif data["type"] == "error":
-            print("Error" + data['error'])
+            print("Error: " + data['error'])
 
 
 main()
