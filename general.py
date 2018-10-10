@@ -1,5 +1,7 @@
 import json
 import os
+
+
 BUFFER_SIZE = 10240
 
 
@@ -93,13 +95,18 @@ def receive_folder(connection, path, received_json, type=None):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
     if type is None:
+        print('in none')
         response = {'type': received_json['type']}
     else:
+        print('in else of none')
         response = {'type': type}
-    connection.send(json.dumps(response).encode('utf-8'))
-    response = {'type': received_json['type']}
-    my_send(connection,response)
+    print(response)
+    # connection.send(json.dumps(response).encode('utf-8'))
+    my_send(connection, response)
+    # response = {'type': received_json['type']}
+    # my_send(connection,response)
     chunk_size = received_json["chunk_size"]
     for i in range(len(received_json["file_name"])):
         receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size, path)
