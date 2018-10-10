@@ -163,7 +163,7 @@ def send_code_files(connection):
         code_path = '/code'
 
         full_path = cwd + code_path + '/'
-        send_folder(connection, full_path, 'actual')
+        send_folder(connection, full_path, 'actual_code')
 
     else:
         msg = {
@@ -376,7 +376,8 @@ class MyThread(threading.Thread):
             while final_answer == 'yes':
 
                 request = {
-                    'type': 'actual_input'
+                    'type': 'question',
+                    'question':'input_data'
                 }
                 my_send(self.connection, request)
 
