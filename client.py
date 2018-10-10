@@ -1,14 +1,16 @@
+import select
 import socket
 import os
 import subprocess
 import json
+import sys
 import time
 import general
 
 TCP_IP = '192.168.0.105'
 TCP_PORT = int(input('Enter Port: '))
 BUFFER_SIZE = 10240
-TIMEOUT = 10000000
+TIMEOUT = 5  # for input()
 
 
 def execute_code(path):
@@ -50,11 +52,17 @@ def main():
                 s.send(json.dumps(response).encode('utf-8'))
 
             elif data["question"] == "input_data":
+
                 print("Do you want to continue(y/n): ", end="")
-                choice = ''
-                start_time = time.time()
-                while time.time() <= start_time + 5 and choice == '':
-                    choice = input()
+                sys.stdout.flush()
+                choice = 'y'
+
+                i, o, e = select.select([sys.stdin], [], [], TIMEOUT)
+
+                if (i):
+                    choice = sys.stdin.readline().strip()
+                else:
+                    choice = 'y'
 
                 response = {'type': "response_input"}
                 if choice == 'n':
@@ -70,7 +78,7 @@ def main():
         elif data["type"] == "assess":
             cwd = os.getcwd()
             path = os.path.join(cwd, data['type'])
-            general.receive_folder(s, path, data,"acknowledge_assess")
+            general.receive_folder(s, path, data, "acknowledge_assess")
 
         elif data["type"] == "actual_code":
             cwd = os.getcwd()
@@ -81,10 +89,12 @@ def main():
             cwd = os.getcwd()
             path = os.path.join(cwd, 'actual')
 
-            general.receive_folder(s, path, data,"acknowledge_actual_input")
+            general.receive_folder(s, path, data, "acknowledge_actual_input")
 
             code_file_path = os.path.join(path, 'code.py')
-            output_path_join = os.path.join(path, 'output')
+            output_path = os.path.join(path, 'output')
+
+            time.sleep(1)
             time_taken = execute_code(code_file_path)
 
             if time_taken == "FAIL":
@@ -102,10 +112,20 @@ def main():
             data = json.loads(received)
 
             if data["type"] == "acknowledge_finished" and time_taken != "FAIL":
-                general.send_folder(s, output_path_join, "result", time_taken)
+                general.send_folder(s, output_path, "result", time_taken)
+
+                # time.sleep(30)
+                os.remove(os.path.join(path, 'input.txt'))
+
+                # for files in os.listdir(output_path):
+                #     file_path = os.path.join(output_path, files)
+                #     os.remove(file_path)
+                # os.remove(output_path)
+
+                subprocess.Popen(['rm', '-rf', output_path])
 
         elif data["type"] == "error":
-            print("Error" + data['error'])
+            print("Error: " + data['error'])
 
 
 main()
