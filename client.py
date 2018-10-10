@@ -80,6 +80,7 @@ def send_folder(connection, path, type, time_taken=None):
 
     my_send(connection, msg)
     print('waiting for acknowledge')
+    len(all_files)
     response = my_recv(connection)
 
     if response['type'] == 'acknowledge_' + type:
@@ -105,7 +106,7 @@ def send_folder(connection, path, type, time_taken=None):
                 return -1
             else:
                 print('Success')
-                return 1
+        return 1
     else:
         print('Didnt got response')
 
