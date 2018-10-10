@@ -135,8 +135,6 @@ def send_folder(connection, path, type):
         sizes.append(file_size)
 
 
-
-
     msg = {
         'type': type,
         'file_size': sizes,
