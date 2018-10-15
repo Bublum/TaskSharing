@@ -10,7 +10,7 @@ from _thread import start_new_thread
 from general import my_recv, my_send, send_folder, receive_folder
 
 BUFFER_SIZE = 1024
-server_ip = '192.168.0.105'
+server_ip = '10.11.9.26'
 server_port = int(input('Enter port'))
 
 folder_names = os.listdir(os.getcwd() + '/actual/data/input')
@@ -44,7 +44,7 @@ def create_init_message(self_hostname, self_ip, self_port):
 
 
 def init_self(port):
-    self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+    self_ip = '10.31.0.20'
     self_hostname = socket.gethostname()
     data_server = DataServer(self_ip, self_hostname, port)
     return data_server
@@ -304,7 +304,7 @@ debug_receive = 'request received : '
 
 
 
-data_server = init_self(7443)
+data_server = init_self(9000)
 s = send_coordinator_init_message()
 # socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # socket_obj.bind((data_server.ip, data_server.port))
