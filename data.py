@@ -86,7 +86,7 @@ def send_coordinator_init_message():
                     'error': 'invalid_query'})
 
     return s
-    
+
 
 
 message_types = {
