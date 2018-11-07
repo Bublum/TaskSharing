@@ -3,14 +3,13 @@ import os
 import socket
 import netifaces as ni
 import subprocess
-from _thread import start_new_thread
-
-
+import _thread
+import time
 
 from general import my_recv, my_send, send_folder, receive_folder
 
 BUFFER_SIZE = 1024
-server_ip = '192.168.0.105'
+server_ip = '192.168.43.154'
 server_port = int(input('Enter port'))
 
 folder_names = os.listdir(os.getcwd() + '/actual/data/input')
@@ -23,7 +22,9 @@ for name in folder_names:
         'success': 'yes'
     }
     all_folders.append(folder_info)
-print(all_folders)
+
+
+# print(all_folders)
 
 
 class DataServer:
@@ -44,31 +45,11 @@ def create_init_message(self_hostname, self_ip, self_port):
 
 
 def init_self(port):
-    self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+    #self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+    self_ip = '10.31.0.5'
     self_hostname = socket.gethostname()
     data_server = DataServer(self_ip, self_hostname, port)
     return data_server
-
-
-# def my_send(connection, data):
-#     data = json.dumps(data)
-#     print('sending : ' + str(data))
-#     connection.send(bytes(data, 'UTF-8'))
-
-
-# def my_recv(connection):
-#     print('starting receive' + str(connection))
-#
-#     data = connection.recv(BUFFER_SIZE)
-#     print('waiting in received')
-#     while not data:
-#         data = connection.recv(BUFFER_SIZE)
-#         print('in while')
-#
-#     print('received : ' + str(data))
-#     data = json.loads(data.decode('UTF-8'))
-#     return data
-
 
 def receive_file(sock, file_size, file_name, chunk_size):
     file = open(file_name, "wb")
@@ -105,7 +86,7 @@ def send_coordinator_init_message():
                     'error': 'invalid_query'})
 
     return s
-    # s.close()
+    
 
 
 message_types = {
@@ -166,81 +147,8 @@ def send_input(connection, path, data_json):
     else:
         print('All folders sent')
 
-    # all_folders = os.listdir(path)
-    # left_folders = [x for x in all_folders if x not in sent_folders]
-    # print(str(len(all_folders)) + str(all_folders))
-    # print(str(len(left_folders)) + str(left_folders))
-    # if left_folders:
-    #     path = path + '/' + left_folders[0] + '/'
-    #     print('adding to sent_folders[] : ' + str(left_folders[0]))
-    #     sent_folders.append(left_folders[0])
-    #     send_folder(connection, path, type)
-    # else:
-    #     print('All folders sent')
 
 
-# def send_folder(connection, path, type):
-#     # cwd = os.getcwd()
-#
-#     # code_path = '/code'
-#
-#     # full_path = cwd + code_path + '/'
-#
-#     sizes = []
-#     # To get sizes of each file
-#     all_files = os.listdir(path)
-#
-#     for each in all_files:
-#         file_info = os.stat(path + each)
-#         file_size = file_info.st_size
-#         sizes.append(file_size)
-#
-#     msg = {
-#         'type': type,
-#         'file_size': sizes,
-#         'chunk_size': BUFFER_SIZE,
-#         'file_name': all_files,
-#     }
-#     my_send(connection, msg)
-#     print('waiting for acknowledge')
-#     response = my_recv(connection)
-#
-#     if response['type'] == 'acknowledge_get_input':
-#
-#         for each in range(len(all_files)):
-#             file_name = all_files[each]
-#             # file_type = SAMPLE_TYPE[each]
-#             f = open(path + file_name, 'rb')
-#             file_size = sizes[each]
-#             chunk_size = BUFFER_SIZE
-#
-#             while file_size > 0:
-#                 # print(file_size)
-#                 current = chunk_size
-#                 if file_size < chunk_size:
-#                     current = file_size
-#                 # print(current)
-#                 msg = f.read(current)
-#                 file_size -= current
-#                 connection.send(msg)
-#                 # temp = connection.recv(2).decode('UTF-8')
-#                 # print(temp)
-#                 # if temp != 'ok':
-#                 #     print('FAIL')
-#             print('Done:' + file_name)
-#
-#             response = my_recv(connection)
-#             if not (response['type'] == 'file_received' and response['file_name'] == file_name):
-#                 print('Failure')
-#                 return -1
-#             else:
-#                 print('Success')
-#         # response = my_recv(connection)
-#         # print(response)
-#         return 1
-#
-#     else:
-#         print('Didn\'t get response')
 
 
 def send_folder_old(path, client_sock, type):
@@ -278,15 +186,13 @@ def send_folder_old(path, client_sock, type):
                     print('ACK NOT RECVD')
                     break
 
-            # client_sock.close()
+
         else:
             print('------------------Did not receive ack------------------')
-            # client_sock.close()
+
     except IOError:
         print(IOError.strerror)
         print('send_folder()')
-        # client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
-        # client_sock.close()
 
 
 def execute_code(s, filename):
@@ -303,31 +209,39 @@ def execute_code(s, filename):
 debug_receive = 'request received : '
 
 
+def request_handler(name, delay):
+    print('started thread')
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('192.168.43.245', 7800))
+    s.listen(100)
+    while True:
+        conn, addr = s.accept()
+        print(addr)
+        req = conn.recv(BUFFER_SIZE).decode('UTF-8')
+        print(req)
 
-data_server = init_self(7443)
+        json_data = json.dumps(all_folders)
+
+        conn.send(('HTTP/1.1 200 OK\n'
+                   'Connection: close\n'
+                   'Content-Type: application/json\n'
+                   'Access-Control-Allow-Origin: *\n'
+                   'Access-Control-Expose-Headers: Access-Control-Allow-Origin\n'
+                   'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept\n'
+                   '\n' +
+                   json_data).encode('utf-8'))
+
+
+_thread.start_new_thread(request_handler, ('akshay', 1))
+
+# data_server = init_self(7443)
 s = send_coordinator_init_message()
-# socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# socket_obj.bind((data_server.ip, data_server.port))
-# socket_obj.listen(1)
 while True:
     print('\n\nWaiting for connection...')
     # client_sock, address = socket_obj.accept()
     data_json = my_recv(s)
     # print(data_json)
     if data_json:
-        # print('Connection with coordinator established.')
-        # data = client_sock.recv(BUFFER_SIZE)
-        # data_json = json.loads(data)
-        # print(data_json)
-        # if data_json['type'] == 'sample_code':
-        #     print(debug_receive + 'sample_code')
-        #     send_file('test_text_file.txt', s, type='sample_code')
-        # elif data_json['type'] == 'client_code':
-        #     print(debug_receive + 'client_code')
-        #     send_file('client_code.py', s, type='client_code')
-        # elif data_json['type'] == 'server_code':
-        #     print(debug_receive + 'server_code')
-        #     send_file('server_code.py', s, type='server_code')
         if data_json['type'] == 'get_input':
             # print(debug_receive + 'input')
             print('get_input')
@@ -365,14 +279,3 @@ while True:
     else:
         print('In else')
 
-
-def request_handler():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('192.168.0.108', 5988))
-    s.listen(100)
-    conn , addr = s.accept()
-
-    
-
-#
-start_new_thread(request_handler)
