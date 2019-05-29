@@ -15,6 +15,10 @@ while 1:
     data = conn.recv(BUFFER_SIZE)
     if not data: break
     print("received data:" + str(data))
-    conn.send(json.dumps({'message' : 'GET_DATA'}).encode('UTF-8'))
+    conn.send('HTTP/1.1 200 OK\n'
+              'Connection: close\n'
+              'Content-Type: text/html\n'
+              '\n'
+              +json.dumps(all_folders).encode('UTF-8'))
     # conn.send(data)  # echo
 conn.close()

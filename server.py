@@ -27,61 +27,61 @@ task_queue = queue.Queue()  # stores list of tasks
 done_task_list = []  # takes data from data_server and appends its metadata it into this list.
 
 
-def get_sample_data():
-    global HAS_SAMPLE
-    global DATA_IP
-    global DATA_PORT
-    global HAS_SAMPLE
-    HAS_SAMPLE = True
-    if DATA_IP == '':
-        print('Data node not found')
-    else:
-        if DATA_PORT != 0:
-            msg = {
-                'type': 'sample_code',
-            }
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((DATA_IP, DATA_PORT))
-            my_send(s, msg)
-            response = my_recv(s)
-
-            if response['type'] == 'sample_code':
-                msg['type'] = "acknowledge_" + response["type"]
-
-                s.send(json.dumps(response).encode('utf-8'))
-
-                chunk_size = response["chunk_size"]
-
-                for i in range(len(response["file_name"])):
-                    current = response["file_size"][i]
-                    file = open(response["file_name"][i], "wb")
-
-                    while current > 0:
-
-                        current = chunk_size
-                        if current < chunk_size:
-                            current = current
-                        print(current)
-                        # s.settimeout(TIMEOUT)
-                        file_data = s.recv(current)
-                        # print('--------' + str(len(file_data)))
-                        current -= len(file_data)
-                        while not file_data:
-                            file_data = s.recv(current)
-                        file.write(file_data)
-
-                    file.close()
-
-                    file_response = {"type": "file_received", "file_name": response["file_name"][i]}
-
-                    s.send(json.dumps(file_response).encode('utf-8'))
-                    print("received " + response["file_name"][i])
-                HAS_SAMPLE = True
-            else:
-                print('Error Occurred')
-
-        else:
-            print('Data port not found')
+# def get_sample_data():
+#     global HAS_SAMPLE
+#     global DATA_IP
+#     global DATA_PORT
+#     global HAS_SAMPLE
+#     HAS_SAMPLE = True
+#     if DATA_IP == '':
+#         print('Data node not found')
+#     else:
+#         if DATA_PORT != 0:
+#             msg = {
+#                 'type': 'sample_code',
+#             }
+#             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#             s.connect((DATA_IP, DATA_PORT))
+#             my_send(s, msg)
+#             response = my_recv(s)
+#
+#             if response['type'] == 'sample_code':
+#                 msg['type'] = "acknowledge_" + response["type"]
+#
+#                 s.send(json.dumps(response).encode('utf-8'))
+#
+#                 chunk_size = response["chunk_size"]
+#
+#                 for i in range(len(response["file_name"])):
+#                     current = response["file_size"][i]
+#                     file = open(response["file_name"][i], "wb")
+#
+#                     while current > 0:
+#
+#                         current = chunk_size
+#                         if current < chunk_size:
+#                             current = current
+#                         print(current)
+#                         # s.settimeout(TIMEOUT)
+#                         file_data = s.recv(current)
+#                         # print('--------' + str(len(file_data)))
+#                         current -= len(file_data)
+#                         while not file_data:
+#                             file_data = s.recv(current)
+#                         file.write(file_data)
+#
+#                     file.close()
+#
+#                     file_response = {"type": "file_received", "file_name": response["file_name"][i]}
+#
+#                     s.send(json.dumps(file_response).encode('utf-8'))
+#                     print("received " + response["file_name"][i])
+#                 HAS_SAMPLE = True
+#             else:
+#                 print('Error Occurred')
+#
+#         else:
+#             print('Data port not found')
 
 
 def send_code_files(connection):
@@ -393,7 +393,7 @@ class MyThread(threading.Thread):
                         print('got NO')
 
             self.connection.close()
-            threading.Thread.join(self)
+            return 1
 
 
 hostname = socket.gethostname()
