@@ -7,10 +7,10 @@ import sys
 import time
 import general
 
-TCP_IP = '192.168.0.105'
+TCP_IP = '192.168.43.154'
 TCP_PORT = int(input('Enter Port: '))
 BUFFER_SIZE = 10240
-TIMEOUT = 5  # for input()
+TIMEOUT = 2  # for input()
 
 
 def execute_code(path):
