@@ -1,3 +1,4 @@
+<html>
 <head>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
@@ -10,98 +11,117 @@
     <script>
         i = 0;
         (setInterval(function () {
-            // $.ajax({
-            //     url: "http://192.168.0.108:5988", success: function (result) {
-            var result = "[{\"uid\": 1, \"status\": \"Done\"},\
-                        {\"uid\": 2, \"status\": \"Done\"},\
-                        {\"uid\": 4, \"status\": \"Started\"},\
-                        {\"uid\": 5, \"status\": \"No\"},\n\
-                        {\"uid\": 6, \"status\": \"Done\"},\n                        \
-                        {\"uid\": 7, \"status\": \"Started\"},\n\
-                        {\"uid\": 8, \"status\": \"No\"},\n\
-                        {\"uid\": 9, \"status\": \"Done\"},\n \
-                        {\"uid\": 10, \"status\": \"Started\"}]";
-
-            var jsonArr = JSON.parse(result);
-
-            // obj = JSON.parse(json);
-            // alert(jsonArr.length);
-
-            for (var i = 0; i < jsonArr.length; i++) {
-                let each = jsonArr[i];
-                let pBar, parent_div;
-                if (document.getElementById("pBar" + each["uid"]) == null) {
-
-
-                    parent_div = document.createElement("div");
-                    parent_div.setAttribute("id", "parent_" + each["uid"]);
-                    parent_div.setAttribute("style", "display: inline-block");
-
-                    pBar = document.createElement("div");
-                    pBar.setAttribute("id", "pBar" + each["uid"]);
-                    pBar.setAttribute("class", "button_class");
-                    pBar.innerHTML = each["uid"];
-
-                    parent_div.appendChild(pBar);
-                    document.getElementById("pBarDiv").appendChild(parent_div);
-                } else {
-
-                    parent_div = document.getElementById("parent_" + each["uid"]);
-
-                    pBar = document.getElementById("pBar" + each["uid"]);
-                    pBar.setAttribute("class", "button_class");
-                    if (each["status"] == "Started") {
-                        let existing_load_doc = document.getElementById("load_" + each["uid"]);
-                        if (existing_load_doc != null) {
-                            if (existing_load_doc.innerText === "o") {
-                                existing_load_doc.innerHTML = "oo";
-                            } else if (existing_load_doc.innerText === "oo") {
-                                existing_load_doc.innerHTML = "ooo";
-                            } else if (existing_load_doc.innerText === "ooo") {
-                                existing_load_doc.innerHTML = "o";
-                            }
-                        } else {
-                            let load_doc = document.createElement("div");
-                            // load_doc.setAttribute("style", "float: left");
-                            load_doc.setAttribute("id", "load_" + each["uid"]);
-                            load_doc.innerHTML = "o";
-                            parent_div.appendChild(load_doc);
-                        }
-                    }else {
-                        let existing_load_doc = document.getElementById("load_" + each["uid"]);
-                        if (existing_load_doc == null) {
-                            let load_doc = document.createElement("div");
-                            load_doc.setAttribute("id", "load_" + each["uid"]);
-                            load_doc.innerHTML = ".";
-                            parent_div.appendChild(load_doc);
-                        }
-                    }
-
-
-                }
-
-                if (each["status"] === "Done") {
-                    pBar.setAttribute("class", "btn btn-success button_class");
-                } else if (each["status"] === "Started") {
-                    pBar.setAttribute("class", "btn btn-warning button_class");
-                } else {
-                    pBar.setAttribute("class", "btn btn-disabled button_class");
-                }
-
-            }
+            // var xhttp = new XMLHttpRequest();
+            // xhttp.onreadystatechange = function () {
+            //     if (this.readyState == 4 && this.status == 200) {
+            //         // Typical action to be performed when the document is ready:
+            //         console.log(this.responseText);
+            //     }else{
+            //         console.log(this.status);
+            //         console.log(this.readyState);
+            //         console.log(this);
+            //         console.log("hi");
             //     }
-            // });
+            // };
+            // xhttp.open("GET", "http://192.168.0.108:6200", true);
+            // xhttp.send();
+            $.ajax({
+                url: "http://192.168.43.245:7800",
+                dataType: 'text json',
+                contentType: "application/json",
+                crossDomain: true,
+                type: "get",
 
-        }, 1000))
+                success: function (result) {
+                    console.log(result);
+
+                    result.sort( function (a,b) {
+                        return a.folder.localeCompare(b.folder);
+                    });
+                    // var result = "[{\"uid\": 1, \"status\": \"done\"},\
+                    //             {\"uid\": 2, \"status\": \"done\"},\
+                    //             {\"uid\": 4, \"status\": \"processing\"},\
+                    //             {\"uid\": 5, \"status\": \"No\"},\n\
+                    //             {\"uid\": 6, \"status\": \"done\"},\n                        \
+                    //             {\"uid\": 7, \"status\": \"processing\"},\n\
+                    //             {\"uid\": 8, \"status\": \"No\"},\n\
+                    //             {\"uid\": 9, \"status\": \"done\"},\n \
+                    //             {\"uid\": 10, \"status\": \"processing\"}]";
+
+                    // var jsonArr = JSON.parse(result);
+
+                    // obj = JSON.parse(json[0]);
+                    // alert(jsonArr.length);
+
+                    for (var i = 0; i < result.length; i++) {
+                        let each = result[i];
+                        let pBar, parent_div;
+                        if (document.getElementById("pBar" + each["folder"]) == null) {
+
+
+                            // parent_div = document.createElement("div");
+                            // parent_div.setAttribute("id", each["uid"]);
+
+                            pBar = document.createElement("div");
+                            pBar.setAttribute("id", "pBar" + each["folder"]);
+                            pBar.setAttribute("class", "button_class");
+                            pBar.innerHTML = each["folder"];
+
+                            document.getElementById("pBarDiv").appendChild(pBar);
+                        } else {
+                            pBar = document.getElementById("pBar" + each["folder"]);
+                            pBar.setAttribute("class", "button_class");
+                            if (each["status"] === "processing") {
+                                let existing_load_doc = document.getElementById("load_" + each["folder"]);
+                                if (existing_load_doc != null) {
+                                    if (existing_load_doc.innerText === ".") {
+                                        existing_load_doc.innerHTML = "..";
+                                    } else if (existing_load_doc.innerText === "..") {
+                                        existing_load_doc.innerHTML = "...";
+                                    } else if (existing_load_doc.innerText === "...") {
+                                        existing_load_doc.innerHTML = ".";
+                                    }
+                                } else {
+                                    let load_doc = document.createElement("div");
+                                    load_doc.setAttribute("id", "load_" + each["folder"]);
+                                    load_doc.innerHTML = ".";
+                                    pBar.appendChild(load_doc);
+                                }
+                            }
+
+
+                        }
+
+                        if (each["status"] === "done") {
+                            pBar.setAttribute("class", "btn btn-success button_class");
+                        } else if (each["status"] === "processing") {
+                            pBar.setAttribute("class", "btn btn-warning button_class");
+                        } else {
+                            pBar.setAttribute("class", "btn btn-disabled button_class button_grey");
+                            // pBar.setAttribute("style", "\{color:'grey'");
+                        }
+                //
+                    }
+                }
+            });
+
+        }, 1000));
     </script>
     <style>
         .button_class {
             margin: 1%;
         }
+        .button_grey {
+            background: lightgray;
+        }
     </style>
 
 </head>
 <br/>
+<h1 align="center">Live Status</h1>
+<h5 align="center"><div class="btn btn-success">#</div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Done</h5>
+<h5 align="center"><div class="btn btn-disabled button_grey">#</div>&nbsp;&nbsp;Not Assigned </h5>
+<h5 align="center"><div class="btn btn-warning">#</div> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ongoing</h5>
 <div id="pBarDiv" class="container" align="center">
 
 </div>
