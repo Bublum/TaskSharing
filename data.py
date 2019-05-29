@@ -3,13 +3,28 @@ import os
 import socket
 import netifaces as ni
 import subprocess
+import _thread
+import time
+
+from general import my_recv, my_send, send_folder, receive_folder
 
 BUFFER_SIZE = 1024
-server_ip = '192.168.0.106'
-server_port = 9000
+server_ip = '192.168.43.154'
+server_port = int(input('Enter port'))
 
-input_request_counter = 0
-sent_folders = []
+folder_names = os.listdir(os.getcwd() + '/actual/data/input')
+all_folders = []
+for name in folder_names:
+    folder_info = {
+        'folder': name,
+        'status': 'no',
+        'uid': '',
+        'success': 'yes'
+    }
+    all_folders.append(folder_info)
+
+
+# print(all_folders)
 
 
 class DataServer:
@@ -30,24 +45,11 @@ def create_init_message(self_hostname, self_ip, self_port):
 
 
 def init_self(port):
-    print(ni.interfaces())
-    self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+    #self_ip = ni.ifaddresses('wlp3s0')[ni.AF_INET][0]['addr']
+    self_ip = '10.31.0.5'
     self_hostname = socket.gethostname()
     data_server = DataServer(self_ip, self_hostname, port)
     return data_server
-
-
-def my_send(connection, data):
-    data = json.dumps(data)
-    print(data)
-    connection.send(bytes(data, 'UTF-8'))
-
-
-def my_recv(connection):
-    data = connection.recv(BUFFER_SIZE)
-    print(data)
-    data = json.loads(data.decode('UTF-8'))
-    return data
 
 def receive_file(sock, file_size, file_name, chunk_size):
     file = open(file_name, "wb")
@@ -67,38 +69,11 @@ def receive_file(sock, file_size, file_name, chunk_size):
     return
 
 
-def receive_folder(connection, folder, received_json):
-    cwd = os.getcwd()
-    if not os.path.exists(cwd + '/' + folder):
-        os.makedirs(cwd + '/' + folder)
-    os.chdir(cwd + '/' + folder)
-
-    response = {'type': "acknowledge_" + received_json['type']}
-    connection.send(json.dumps(response).encode('utf-8'))
-
-    chunk_size = received_json["chunk_size"]
-    for i in range(len(received_json["file_name"])):
-        receive_file(connection, received_json["file_size"][i], received_json["file_name"][i], chunk_size)
-
-        file_response = dict()
-        file_response["type"] = "file_received"
-        file_response["file_name"] = received_json["file_name"][i]
-
-        s.send(json.dumps(file_response).encode('utf-8'))
-        print("received " + received_json["file_name"][i])
-
-    response = {'type': "acknowledge_" + received_json["type"]}
-    connection.send(json.dumps(response).encode('utf-8'))
-
-    os.chdir(cwd)
-
-    return
-
-
 def send_coordinator_init_message():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((server_ip, server_port))
     server_query = my_recv(s)
+    print('Request from server : ' + str(server_query))
     if server_query['type'] == 'question' and server_query['question'] == 'role':
         my_send(s, {'type': 'question',
                     'role': 'data_server'})
@@ -109,7 +84,9 @@ def send_coordinator_init_message():
     else:
         my_send(s, {'type': 'question',
                     'error': 'invalid_query'})
-    s.close()
+
+    return s
+
 
 
 message_types = {
@@ -117,25 +94,25 @@ message_types = {
 }
 
 
-def send_file(path, client_sock, type):
-    print('Sending file')
-    try:
-        file = open(path, 'r')
-        data = file.read(BUFFER_SIZE)
-        my_send(client_sock, {
-            'type': type,
-            'file_names': '0',
-            'file_sizes': '100',
-            'num_of_bytes': len(data),
-            'chunk_size': BUFFER_SIZE,
-        })
-        while data:
-            client_sock.send(data)
-            data = file.read(BUFFER_SIZE)
-        file.close()
-        client_sock.close()
-    except IOError:
-        client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
+# def send_file(path, client_sock, type):
+#     print('Sending file')
+#     try:
+#         file = open(path, 'r')
+#         data = file.read(BUFFER_SIZE)
+#         my_send(client_sock, {
+#             'type': type,
+#             'file_names': '0',
+#             'file_sizes': '100',
+#             'num_of_bytes': len(data),
+#             'chunk_size': BUFFER_SIZE,
+#         })
+#         while data:
+#             client_sock.send(data)
+#             data = file.read(BUFFER_SIZE)
+#         file.close()
+#         client_sock.close()
+#     except IOError:
+#         client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
 
 
 def get_file_sizes(file_names, path):
@@ -152,80 +129,32 @@ def get_file_types(file_names):
     return types
 
 
-def send_input(connection, path, type):
-    all_folders = os.listdir(path)
-    left_folders = [x for x in all_folders if x not in sent_folders]
-    if left_folders:
-        path = path + '/' + left_folders[0]
-        sent_folders.append(left_folders[0])
+def send_input(connection, path, data_json):
+    type = data_json['type']
+    print('input path is : ' + path)
+    found = False
+    index = 0
+    for each in all_folders:
+        if each['status'] == 'no':
+            found = True
+            break
+        index += 1
+    if found:
+        path = path + '/' + all_folders[index]['folder']
+        all_folders[index]['status'] = 'processing'
+        all_folders[index]['uid'] = str(data_json['client_id']) + '_' + str(data_json['number'])
         send_folder(connection, path, type)
     else:
         print('All folders sent')
 
 
-def send_folder(connection, path, type):
-    # cwd = os.getcwd()
 
-    # code_path = '/code'
-
-    # full_path = cwd + code_path + '/'
-
-    sizes = []
-    # To get sizes of each file
-    all_files = os.listdir(path)
-
-    for each in all_files:
-        file_info = os.stat(path + each)
-        file_size = file_info.st_size
-        sizes.append(file_size)
-
-    msg = {
-        'type': type,
-        'file_size': sizes,
-        'chunk_size': BUFFER_SIZE,
-        'file_name': all_files,
-    }
-    my_send(connection, msg)
-    print('waiting for acknowledge')
-    response = my_recv(connection)
-
-    if response['type'] == 'acknowledge_actual':
-
-        for each in range(len(all_files)):
-            file_name = all_files[each]
-            # file_type = SAMPLE_TYPE[each]
-            f = open(path + file_name, 'rb')
-            file_size = sizes[each]
-            chunk_size = BUFFER_SIZE
-
-            while file_size > 0:
-                print(file_size)
-                current = chunk_size
-                if file_size < chunk_size:
-                    current = file_size
-                # print(current)
-                msg = f.read(current)
-                file_size -= current
-                connection.send(msg)
-                # temp = connection.recv(2).decode('UTF-8')
-                # print(temp)
-                # if temp != 'ok':
-                #     print('FAIL')
-            print('Done:' + file_name)
-
-            response = my_recv(connection)
-            if not (response['type'] == 'file_received' and response['file_name'] == file_name):
-                print('Failure')
-                return -1
-            else:
-                print('Success')
-                return 1
-    else:
-        print('Didn\'t get response')
 
 
 def send_folder_old(path, client_sock, type):
     print('Sending files in the folder')
+    print(path)
+    print(type)
     try:
         file_names = os.listdir(os.getcwd() + path)
         file_sizes = get_file_sizes(file_names, path)
@@ -246,7 +175,7 @@ def send_folder_old(path, client_sock, type):
                 data = file.read(BUFFER_SIZE)
                 while data:
                     client_sock.send(data.encode('UTF-8'))
-                    print(data)
+                    # print(data)
                     data = file.read(BUFFER_SIZE)
                 file.close()
                 print('----------Done sending file {}'.format(filename))
@@ -257,15 +186,13 @@ def send_folder_old(path, client_sock, type):
                     print('ACK NOT RECVD')
                     break
 
-            # client_sock.close()
+
         else:
             print('------------------Did not receive ack------------------')
-            client_sock.close()
+
     except IOError:
         print(IOError.strerror)
         print('send_folder()')
-        # client_sock.send(json.dumps({'error': str(IOError.filename)}).encode('UTF-8'))
-        client_sock.close()
 
 
 def execute_code(s, filename):
@@ -279,38 +206,76 @@ def execute_code(s, filename):
     s.send("Done".encode('utf-8'))
 
 
-if __name__ == '__main__':
-    data_server = init_self(7443)
-    send_coordinator_init_message()
-    socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    socket_obj.bind((data_server.ip, data_server.port))
-    socket_obj.listen(1)
-    while True:
-        print('Waiting for connection...')
-        client_sock, address = socket_obj.accept()
-        if client_sock:
-            print('Connection with coordinator established.')
-            data = client_sock.recv(BUFFER_SIZE)
-            data_json = json.loads(data)
-            print(data_json)
-            if data_json['type'] == 'sample_code':
-                send_file('test_text_file.txt', client_sock, type='sample_code')
-            elif data_json['type'] == 'client_code':
-                send_file('client_code.py', client_sock, type='client_code')
-            elif data_json['type'] == 'server_code':
-                send_file('server_code.py', client_sock, type='server_code')
-            elif data_json['type'] == 'input':
-                send_input(client_sock, os.getcwd() + '/input', data_json['type'])
-            elif data_json['type'] == 'output':
-                my_send(client_sock,{'type' : data_json['type']})
-                receive_folder(client_sock,'output',data_json)
+debug_receive = 'request received : '
 
-            # elif data_json['type'] == 'request':
-            #     print('request')
-            #     if data_json['file_type'] == 'code':
-            #         send_folder('/actual/code', client_sock, type='actual_codes')
-            # elif data_json['type'] == 'question':
-            #     if data_json['question'] == 'role':
-            #         client_sock.send(json.dumps({'type': 'question',
-            #                                      'role': 'data_server'}).encode('UTF-8'))
-            print('Closed connection with coordinator')
+
+def request_handler(name, delay):
+    print('started thread')
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('192.168.43.245', 7800))
+    s.listen(100)
+    while True:
+        conn, addr = s.accept()
+        print(addr)
+        req = conn.recv(BUFFER_SIZE).decode('UTF-8')
+        print(req)
+
+        json_data = json.dumps(all_folders)
+
+        conn.send(('HTTP/1.1 200 OK\n'
+                   'Connection: close\n'
+                   'Content-Type: application/json\n'
+                   'Access-Control-Allow-Origin: *\n'
+                   'Access-Control-Expose-Headers: Access-Control-Allow-Origin\n'
+                   'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept\n'
+                   '\n' +
+                   json_data).encode('utf-8'))
+
+
+_thread.start_new_thread(request_handler, ('akshay', 1))
+
+# data_server = init_self(7443)
+s = send_coordinator_init_message()
+while True:
+    print('\n\nWaiting for connection...')
+    # client_sock, address = socket_obj.accept()
+    data_json = my_recv(s)
+    # print(data_json)
+    if data_json:
+        if data_json['type'] == 'get_input':
+            # print(debug_receive + 'input')
+            print('get_input')
+            send_input(s, os.getcwd() + '/actual/data/input', data_json)
+        elif data_json['type'] == 'output':
+            # print(debug_receive + 'output')
+            folder_info = data_json
+            uid = str(folder_info['client_id']) + '_' + str(folder_info['number'])
+            print('uid is : ' + uid)
+            # all_folders
+            for folders in all_folders:
+                print(folders)
+                if folders['uid'] == uid:
+                    print('changing folders dict : ' + str(folders))
+                    folders['status'] = 'done'
+                    print('output folder received : ' + str(uid))
+                    break
+            my_send(s, {'type': 'acknowledge_output'})
+            recv_json = my_recv(s)
+
+            receive_folder(s, 'output/' + str(folder_info['client_id']) + '_' + str(folder_info['number']),
+                           recv_json, type='acknowledge_output_files')
+
+        elif data_json['type'] == 'request':
+            print(debug_receive + 'actual code')
+            if data_json['file_type'] == 'code':
+                send_folder_old('/actual/code', s, type='actual_codes')
+        elif data_json['type'] == 'question':
+            print(debug_receive + 'role')
+            if data_json['question'] == 'role':
+                s.send(json.dumps({'type': 'question',
+                                   'role': 'data_server'}).encode('UTF-8'))
+        print('Task Completed')
+        print(all_folders)
+    else:
+        print('In else')
+

@@ -1,0 +1,129 @@
+<html>
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <script>
+        i = 0;
+        (setInterval(function () {
+            // var xhttp = new XMLHttpRequest();
+            // xhttp.onreadystatechange = function () {
+            //     if (this.readyState == 4 && this.status == 200) {
+            //         // Typical action to be performed when the document is ready:
+            //         console.log(this.responseText);
+            //     }else{
+            //         console.log(this.status);
+            //         console.log(this.readyState);
+            //         console.log(this);
+            //         console.log("hi");
+            //     }
+            // };
+            // xhttp.open("GET", "http://192.168.0.108:6200", true);
+            // xhttp.send();
+            $.ajax({
+                url: "http://192.168.43.245:7800",
+                dataType: 'text json',
+                contentType: "application/json",
+                crossDomain: true,
+                type: "get",
+
+                success: function (result) {
+                    console.log(result);
+
+                    result.sort( function (a,b) {
+                        return a.folder.localeCompare(b.folder);
+                    });
+                    // var result = "[{\"uid\": 1, \"status\": \"done\"},\
+                    //             {\"uid\": 2, \"status\": \"done\"},\
+                    //             {\"uid\": 4, \"status\": \"processing\"},\
+                    //             {\"uid\": 5, \"status\": \"No\"},\n\
+                    //             {\"uid\": 6, \"status\": \"done\"},\n                        \
+                    //             {\"uid\": 7, \"status\": \"processing\"},\n\
+                    //             {\"uid\": 8, \"status\": \"No\"},\n\
+                    //             {\"uid\": 9, \"status\": \"done\"},\n \
+                    //             {\"uid\": 10, \"status\": \"processing\"}]";
+
+                    // var jsonArr = JSON.parse(result);
+
+                    // obj = JSON.parse(json[0]);
+                    // alert(jsonArr.length);
+
+                    for (var i = 0; i < result.length; i++) {
+                        let each = result[i];
+                        let pBar, parent_div;
+                        if (document.getElementById("pBar" + each["folder"]) == null) {
+
+
+                            // parent_div = document.createElement("div");
+                            // parent_div.setAttribute("id", each["uid"]);
+
+                            pBar = document.createElement("div");
+                            pBar.setAttribute("id", "pBar" + each["folder"]);
+                            pBar.setAttribute("class", "button_class");
+                            pBar.innerHTML = each["folder"];
+
+                            document.getElementById("pBarDiv").appendChild(pBar);
+                        } else {
+                            pBar = document.getElementById("pBar" + each["folder"]);
+                            pBar.setAttribute("class", "button_class");
+                            if (each["status"] === "processing") {
+                                let existing_load_doc = document.getElementById("load_" + each["folder"]);
+                                if (existing_load_doc != null) {
+                                    if (existing_load_doc.innerText === ".") {
+                                        existing_load_doc.innerHTML = "..";
+                                    } else if (existing_load_doc.innerText === "..") {
+                                        existing_load_doc.innerHTML = "...";
+                                    } else if (existing_load_doc.innerText === "...") {
+                                        existing_load_doc.innerHTML = ".";
+                                    }
+                                } else {
+                                    let load_doc = document.createElement("div");
+                                    load_doc.setAttribute("id", "load_" + each["folder"]);
+                                    load_doc.innerHTML = ".";
+                                    pBar.appendChild(load_doc);
+                                }
+                            }
+
+
+                        }
+
+                        if (each["status"] === "done") {
+                            pBar.setAttribute("class", "btn btn-success button_class");
+                        } else if (each["status"] === "processing") {
+                            pBar.setAttribute("class", "btn btn-warning button_class");
+                        } else {
+                            pBar.setAttribute("class", "btn btn-disabled button_class button_grey");
+                            // pBar.setAttribute("style", "\{color:'grey'");
+                        }
+                //
+                    }
+                }
+            });
+
+        }, 1000));
+    </script>
+    <style>
+        .button_class {
+            margin: 1%;
+        }
+        .button_grey {
+            background: lightgray;
+        }
+    </style>
+
+</head>
+<br/>
+<h1 align="center">Live Status</h1>
+<h5 align="center"><div class="btn btn-success">#</div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Done</h5>
+<h5 align="center"><div class="btn btn-disabled button_grey">#</div>&nbsp;&nbsp;Not Assigned </h5>
+<h5 align="center"><div class="btn btn-warning">#</div> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ongoing</h5>
+<div id="pBarDiv" class="container" align="center">
+
+</div>
+
+</html>
